@@ -1,0 +1,128 @@
+package com.technest.backend.service;
+
+import com.technest.backend.dto.AddToCartRequest;
+import com.technest.backend.dto.CartDto;
+import com.technest.backend.dto.CartItemDto;
+import com.technest.backend.entity.Cart;
+import com.technest.backend.entity.CartItem;
+import com.technest.backend.entity.Product;
+import com.technest.backend.entity.User;
+import com.technest.backend.repository.CartItemRepository;
+import com.technest.backend.repository.CartRepository;
+import com.technest.backend.repository.ProductRepository;
+import com.technest.backend.repository.UserRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Service
+public class CartService {
+
+    private final CartRepository cartRepository;
+    private final CartItemRepository cartItemRepository;
+    private final UserRepository userRepository;
+    private final ProductRepository productRepository;
+
+    public CartService(CartRepository cartRepository, CartItemRepository cartItemRepository,
+                       UserRepository userRepository, ProductRepository productRepository) {
+        this.cartRepository = cartRepository;
+        this.cartItemRepository = cartItemRepository;
+        this.userRepository = userRepository;
+        this.productRepository = productRepository;
+    }
+
+    private Cart getOrCreateCart(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return cartRepository.findByUser(user).orElseGet(() -> {
+            Cart newCart = new Cart();
+            newCart.setUser(user);
+            return cartRepository.save(newCart);
+        });
+    }
+
+    public CartDto getCartForUser(String email) {
+        Cart cart = getOrCreateCart(email);
+        return mapToDto(cart);
+    }
+
+    public CartDto addItemToCart(String email, AddToCartRequest request) {
+        Cart cart = getOrCreateCart(email);
+
+        Product product = productRepository.findById(request.getProductId())
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        Optional<CartItem> existingItem = cart.getItems().stream()
+                .filter(item -> item.getProduct().getId().equals(product.getId()))
+                .findFirst();
+
+        if (existingItem.isPresent()) {
+            CartItem item = existingItem.get();
+            item.setQuantity(item.getQuantity() + request.getQuantity());
+        } else {
+            CartItem newItem = new CartItem();
+            newItem.setCart(cart);
+            newItem.setProduct(product);
+            newItem.setQuantity(request.getQuantity());
+            cart.addItem(newItem);
+        }
+
+        Cart updatedCart = cartRepository.save(cart);
+        return mapToDto(updatedCart);
+    }
+
+    public CartDto updateCartItemQuantity(String email, Long itemId, int quantity) {
+        Cart cart = getOrCreateCart(email);
+
+        CartItem cartItem = cartItemRepository.findById(itemId)
+                .orElseThrow(() -> new RuntimeException("CartItem not found"));
+
+        if (!cartItem.getCart().getId().equals(cart.getId())) {
+            throw new RuntimeException("CartItem does not belong to user's cart");
+        }
+
+        if (quantity <= 0) {
+            cart.removeItem(cartItem);
+            cartItemRepository.delete(cartItem);
+        } else {
+            cartItem.setQuantity(quantity);
+            cartItemRepository.save(cartItem);
+        }
+
+        // Fetch updated cart
+        return mapToDto(cartRepository.findById(cart.getId()).get());
+    }
+
+    public CartDto removeItemFromCart(String email, Long itemId) {
+        Cart cart = getOrCreateCart(email);
+
+        CartItem cartItem = cartItemRepository.findById(itemId)
+                .orElseThrow(() -> new RuntimeException("CartItem not found"));
+
+        if (!cartItem.getCart().getId().equals(cart.getId())) {
+            throw new RuntimeException("CartItem does not belong to user's cart");
+        }
+
+        cart.removeItem(cartItem);
+        cartItemRepository.delete(cartItem);
+
+        return mapToDto(cartRepository.findById(cart.getId()).get());
+    }
+
+    private CartDto mapToDto(Cart cart) {
+        List<CartItemDto> itemDtos = cart.getItems().stream()
+                .map(item -> new CartItemDto(
+                        item.getId(),
+                        item.getProduct().getId(),
+                        item.getProduct().getName(),
+                        item.getProduct().getPrice(),
+                        item.getQuantity()
+                ))
+                .collect(Collectors.toList());
+
+        return new CartDto(cart.getId(), cart.getUser().getId(), itemDtos);
+    }
+}
