@@ -29,7 +29,7 @@ public class CartController {
         return ResponseEntity.ok(cartDto);
     }
 
-    @PostMapping("/items")
+    @PostMapping("/add")
     public ResponseEntity<CartDto> addItemToCart(@RequestBody AddToCartRequest request) {
         String email = getAuthenticatedUserEmail();
         CartDto cartDto = cartService.addItemToCart(email, request);

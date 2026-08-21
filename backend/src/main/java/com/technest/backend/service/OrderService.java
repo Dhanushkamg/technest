@@ -56,7 +56,7 @@ public class OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Cart cart = cartRepository.findByUser(user)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
+                .orElseThrow(() -> new BadRequestException("Cart is empty"));
 
         if (cart.getItems().isEmpty()) {
             throw new BadRequestException("Cart is empty");
@@ -134,10 +134,11 @@ public class OrderService {
     // GET ALL USER ORDERS
     // =========================
 
+    @Transactional(readOnly = true)
     public List<OrderDto> getUserOrders(String email) {
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new com.technest.backend.exception.UnauthorizedException("User not found"));
 
         List<Order> orders = orderRepository.findByUserOrderByCreatedAtDesc(user);
 

@@ -25,7 +25,7 @@ public class OrderController {
                 .getName();
     }
 
-    @PostMapping("/checkout")
+    @PostMapping
     public ResponseEntity<OrderDto> checkout() {
         String email = getAuthenticatedUserEmail();
         OrderDto orderDto = orderService.checkout(email);
