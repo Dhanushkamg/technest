@@ -6,6 +6,8 @@ import com.technest.backend.dto.RegisterRequest;
 import com.technest.backend.entity.User;
 import com.technest.backend.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.technest.backend.exception.BadRequestException;
+import com.technest.backend.exception.UnauthorizedException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -23,7 +25,7 @@ public class UserService {
 
     public User register(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email is already registered");
+            throw new BadRequestException("Email is already registered");
         }
 
         User user = new User();
@@ -37,10 +39,10 @@ public class UserService {
 
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid email or password");
+            throw new UnauthorizedException("Invalid email or password");
         }
 
         String token = jwtService.generateToken(user.getEmail());

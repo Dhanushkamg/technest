@@ -2,6 +2,7 @@ package com.technest.backend.service;
 
 import com.technest.backend.entity.Category;
 import com.technest.backend.repository.CategoryRepository;
+import com.technest.backend.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -25,7 +26,7 @@ public class CategoryService {
 
     public Category getCategoryById(Long id) {
         return categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
     }
 
     public Category updateCategory(Long id, Category categoryDetails) {

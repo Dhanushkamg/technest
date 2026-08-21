@@ -4,6 +4,7 @@ import com.technest.backend.entity.Category;
 import com.technest.backend.entity.Product;
 import com.technest.backend.repository.CategoryRepository;
 import com.technest.backend.repository.ProductRepository;
+import com.technest.backend.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,7 +22,7 @@ public class ProductService {
 
     public Product createProduct(Product product, Long categoryId) {
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
         product.setCategory(category);
         return productRepository.save(product);
     }
@@ -32,14 +33,14 @@ public class ProductService {
 
     public Product getProductById(Long id) {
         return productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
     }
 
     public Product updateProduct(Long id, Product productDetails, Long categoryId) {
         Product product = getProductById(id);
 
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
         product.setName(productDetails.getName());
         product.setDescription(productDetails.getDescription());

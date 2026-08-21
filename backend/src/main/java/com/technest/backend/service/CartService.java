@@ -11,13 +11,18 @@ import com.technest.backend.repository.CartItemRepository;
 import com.technest.backend.repository.CartRepository;
 import com.technest.backend.repository.ProductRepository;
 import com.technest.backend.repository.UserRepository;
+import com.technest.backend.exception.BadRequestException;
+import com.technest.backend.exception.ForbiddenException;
+import com.technest.backend.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class CartService {
 
     private final CartRepository cartRepository;
@@ -35,7 +40,7 @@ public class CartService {
 
     private Cart getOrCreateCart(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         return cartRepository.findByUser(user).orElseGet(() -> {
             Cart newCart = new Cart();
@@ -53,7 +58,7 @@ public class CartService {
         Cart cart = getOrCreateCart(email);
 
         Product product = productRepository.findById(request.getProductId())
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         Optional<CartItem> existingItem = cart.getItems().stream()
                 .filter(item -> item.getProduct().getId().equals(product.getId()))
@@ -78,10 +83,10 @@ public class CartService {
         Cart cart = getOrCreateCart(email);
 
         CartItem cartItem = cartItemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("CartItem not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("CartItem not found"));
 
         if (!cartItem.getCart().getId().equals(cart.getId())) {
-            throw new RuntimeException("CartItem does not belong to user's cart");
+            throw new ForbiddenException("CartItem does not belong to user's cart");
         }
 
         if (quantity <= 0) {
@@ -100,10 +105,10 @@ public class CartService {
         Cart cart = getOrCreateCart(email);
 
         CartItem cartItem = cartItemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("CartItem not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("CartItem not found"));
 
         if (!cartItem.getCart().getId().equals(cart.getId())) {
-            throw new RuntimeException("CartItem does not belong to user's cart");
+            throw new ForbiddenException("CartItem does not belong to user's cart");
         }
 
         cart.removeItem(cartItem);
