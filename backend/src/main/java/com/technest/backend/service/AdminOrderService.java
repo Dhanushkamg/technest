@@ -25,11 +25,13 @@ public class AdminOrderService {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final OrderService orderService;
 
-    public AdminOrderService(OrderRepository orderRepository, UserRepository userRepository, NotificationService notificationService) {
+    public AdminOrderService(OrderRepository orderRepository, UserRepository userRepository, NotificationService notificationService, OrderService orderService) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.orderService = orderService;
     }
 
     private User resolveAdminUser(String email) {
@@ -55,6 +57,15 @@ public class AdminOrderService {
     }
 
     // =========================
+    // CANCEL ORDER (admin)
+    // =========================
+
+    @Transactional
+    public OrderDto cancelOrder(String email, Long orderId) {
+        return orderService.cancelOrderAsAdmin(email, orderId);
+    }
+
+    // =========================
     // UPDATE ORDER STATUS (admin)
     // =========================
 
@@ -64,6 +75,10 @@ public class AdminOrderService {
 
         if (newStatus == null) {
             throw new BadRequestException("Status cannot be null");
+        }
+
+        if (newStatus == OrderStatus.CANCELLED) {
+            return orderService.cancelOrderAsAdmin(email, orderId);
         }
 
         Order order = orderRepository.findById(orderId)
@@ -101,7 +116,7 @@ public class AdminOrderService {
         return switch (current) {
             case PENDING    -> Set.of(OrderStatus.CONFIRMED, OrderStatus.CANCELLED);
             case CONFIRMED  -> Set.of(OrderStatus.SHIPPED,   OrderStatus.CANCELLED);
-            case SHIPPED    -> Set.of(OrderStatus.DELIVERED);
+            case SHIPPED    -> Set.of(OrderStatus.DELIVERED, OrderStatus.CANCELLED);
             case DELIVERED  -> Set.of();
             case CANCELLED  -> Set.of();
         };

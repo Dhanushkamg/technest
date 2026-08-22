@@ -18,12 +18,18 @@ import com.technest.backend.repository.OrderRepository;
 import com.technest.backend.repository.ProductRepository;
 import com.technest.backend.repository.UserRepository;
 import com.technest.backend.entity.NotificationType;
+import com.technest.backend.entity.Payment;
+import com.technest.backend.entity.PaymentStatus;
+import com.technest.backend.repository.PaymentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,6 +43,7 @@ public class OrderService {
     private final AddressRepository addressRepository;
     private final NotificationService notificationService;
     private final com.technest.backend.repository.CouponRepository couponRepository;
+    private final PaymentRepository paymentRepository;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -45,7 +52,8 @@ public class OrderService {
             ProductRepository productRepository,
             AddressRepository addressRepository,
             NotificationService notificationService,
-            com.technest.backend.repository.CouponRepository couponRepository) {
+            com.technest.backend.repository.CouponRepository couponRepository,
+            PaymentRepository paymentRepository) {
 
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
@@ -54,6 +62,7 @@ public class OrderService {
         this.addressRepository = addressRepository;
         this.notificationService = notificationService;
         this.couponRepository = couponRepository;
+        this.paymentRepository = paymentRepository;
     }
 
     // =========================
@@ -250,14 +259,11 @@ public class OrderService {
     }
 
     // =========================
-    // CANCEL ORDER
+    // CANCEL ORDER (Customer)
     // =========================
 
     @Transactional
-    public OrderDto cancelOrder(
-            String email,
-            Long orderId) {
-
+    public OrderDto cancelOrder(String email, Long orderId) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -265,36 +271,100 @@ public class OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
         // Check order ownership
-        if (!order.getUser().getId()
-                .equals(user.getId())) {
-
-            throw new ForbiddenException(
-                    "Access denied");
+        if (!order.getUser().getId().equals(user.getId())) {
+            throw new ForbiddenException("Access denied");
         }
 
-        // Prevent cancelling already cancelled order
         if (order.getStatus() == OrderStatus.CANCELLED) {
-
-            throw new BadRequestException(
-                    "Order is already cancelled");
+            throw new BadRequestException("Order is already cancelled");
         }
 
-        // Restore product stock
-        for (OrderItem orderItem : order.getItems()) {
-
-            Product product = orderItem.getProduct();
-
-            product.setStock(
-                    product.getStock()
-                            + orderItem.getQuantity());
-
-            productRepository.save(product);
+        // Customers can only cancel PENDING or CONFIRMED orders
+        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.CONFIRMED) {
+            throw new BadRequestException("Order cannot be cancelled in status: " + order.getStatus());
         }
 
-        // Update order status
+        return processOrderCancellation(order);
+    }
+
+    // =========================
+    // CANCEL ORDER (Admin)
+    // =========================
+
+    @Transactional
+    public OrderDto cancelOrderAsAdmin(String email, Long orderId) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!"ADMIN".equals(user.getRole())) {
+            throw new ForbiddenException("Access denied: admin role required");
+        }
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new BadRequestException("Order is already cancelled");
+        }
+
+        // Admins can cancel PENDING, CONFIRMED, or SHIPPED orders
+        if (order.getStatus() == OrderStatus.DELIVERED) {
+            throw new BadRequestException("Order cannot be cancelled in status: " + order.getStatus());
+        }
+
+        return processOrderCancellation(order);
+    }
+
+    // =========================
+    // SHARED CANCELLATION LOGIC
+    // =========================
+
+    private OrderDto processOrderCancellation(Order order) {
+        // Collect and sort product IDs to acquire locks in ascending order (prevent deadlocks)
+        List<Long> productIds = order.getItems().stream()
+                .map(item -> item.getProduct().getId())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+
+        Map<Long, Product> lockedProducts = new LinkedHashMap<>();
+        for (Long productId : productIds) {
+            Product lockedProduct = productRepository.findByIdWithLock(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
+            lockedProducts.put(productId, lockedProduct);
+        }
+
+        // Restore stock
+        for (OrderItem item : order.getItems()) {
+            Product lockedProduct = lockedProducts.get(item.getProduct().getId());
+            lockedProduct.setStock(lockedProduct.getStock() + item.getQuantity());
+            productRepository.save(lockedProduct);
+        }
+
+        // Refund payment if present and SUCCESS
+        List<Payment> payments = paymentRepository.findByOrder(order);
+        for (Payment payment : payments) {
+            if (payment.getStatus() == PaymentStatus.SUCCESS) {
+                payment.setStatus(PaymentStatus.REFUNDED);
+                paymentRepository.save(payment);
+                notificationService.createNotification(
+                        order.getUser(),
+                        com.technest.backend.entity.NotificationType.REFUND_PROCESSED,
+                        "Refund of " + payment.getAmount() + " for order #" + order.getId() + " has been processed."
+                );
+            }
+        }
+
+        // Update order status to CANCELLED
         order.setStatus(OrderStatus.CANCELLED);
-
         Order savedOrder = orderRepository.save(order);
+
+        // Notify user about order cancellation
+        notificationService.createNotification(
+                order.getUser(),
+                com.technest.backend.entity.NotificationType.ORDER_CANCELLED,
+                "Your order #" + savedOrder.getId() + " has been cancelled."
+        );
 
         return mapToDto(savedOrder);
     }

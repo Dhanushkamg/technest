@@ -39,12 +39,16 @@ class AdminOrderServiceTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private OrderService orderService;
+
     @InjectMocks
     private AdminOrderService adminOrderService;
 
     private User adminUser;
     private User regularUser;
     private Order pendingOrder;
+    private OrderDto cancelledOrderDto;
 
     @BeforeEach
     void setUp() {
@@ -65,6 +69,8 @@ class AdminOrderServiceTest {
         pendingOrder.setTotalAmount(BigDecimal.valueOf(100));
         pendingOrder.setCreatedAt(LocalDateTime.now());
         pendingOrder.setItems(new ArrayList<>());
+
+        cancelledOrderDto = new OrderDto(10L, 1L, BigDecimal.ZERO, BigDecimal.ZERO, null, BigDecimal.valueOf(100), OrderStatus.CANCELLED, LocalDateTime.now(), null, List.of());
     }
 
     // -------------------------------------------------------
@@ -123,12 +129,12 @@ class AdminOrderServiceTest {
     @Test
     void updateOrderStatus_validTransition_pendingToCancelled_success() {
         when(userRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(adminUser));
-        when(orderRepository.findById(10L)).thenReturn(Optional.of(pendingOrder));
-        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(orderService.cancelOrderAsAdmin("admin@test.com", 10L)).thenReturn(cancelledOrderDto);
 
         OrderDto result = adminOrderService.updateOrderStatus("admin@test.com", 10L, OrderStatus.CANCELLED);
 
         assertThat(result.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        verify(orderService).cancelOrderAsAdmin("admin@test.com", 10L);
     }
 
     @Test
@@ -145,13 +151,13 @@ class AdminOrderServiceTest {
 
     @Test
     void updateOrderStatus_invalidTransition_deliveredToAnything_throwsBadRequest() {
-        pendingOrder.setStatus(OrderStatus.DELIVERED);
         when(userRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(adminUser));
-        when(orderRepository.findById(10L)).thenReturn(Optional.of(pendingOrder));
+        when(orderService.cancelOrderAsAdmin("admin@test.com", 10L))
+                .thenThrow(new BadRequestException("Order cannot be cancelled in status: DELIVERED"));
 
         assertThatThrownBy(() -> adminOrderService.updateOrderStatus("admin@test.com", 10L, OrderStatus.CANCELLED))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("Invalid status transition: DELIVERED → CANCELLED");
+                .hasMessageContaining("Order cannot be cancelled in status: DELIVERED");
     }
 
     @Test

@@ -62,4 +62,24 @@ public class AdminOrderController {
         OrderDto updatedOrder = adminOrderService.updateOrderStatus(email, id, request.getStatus());
         return ResponseEntity.ok(updatedOrder);
     }
+
+    /**
+     * POST /api/admin/orders/{id}/cancel
+     * Cancels an order as admin.
+     */
+    @org.springframework.web.bind.annotation.PostMapping("/{id}/cancel")
+    public ResponseEntity<OrderDto> cancelOrderPost(@PathVariable Long id) {
+        String email = getAuthenticatedUserEmail();
+        OrderDto updatedOrder = adminOrderService.cancelOrder(email, id);
+        return ResponseEntity.ok(updatedOrder);
+    }
+
+    /**
+     * PUT /api/admin/orders/{id}/cancel
+     * Cancels an order as admin.
+     */
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<OrderDto> cancelOrderPut(@PathVariable Long id) {
+        return cancelOrderPost(id);
+    }
 }
