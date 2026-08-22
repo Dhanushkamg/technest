@@ -1,6 +1,7 @@
 package com.technest.backend.service;
 
 import com.technest.backend.dto.CreatePaymentRequest;
+import com.technest.backend.dto.PaymentConfirmRequest;
 import com.technest.backend.dto.PaymentResponse;
 import com.technest.backend.entity.Order;
 import com.technest.backend.entity.OrderStatus;
@@ -37,6 +38,98 @@ public class PaymentService {
         this.notificationService = notificationService;
     }
 
+    public PaymentResponse initiatePayment(String email, CreatePaymentRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Order order = orderRepository.findById(request.getOrderId())
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        // Check ownership
+        if (!order.getUser().getId().equals(user.getId()) && !"ADMIN".equals(user.getRole())) {
+            throw new ForbiddenException("Access denied: You do not own this order.");
+        }
+
+        // Check if order is cancelled
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new BadRequestException("Cannot process payment for a cancelled order.");
+        }
+
+        // Prevent duplicate successful payments
+        if (paymentRepository.existsByOrderAndStatus(order, PaymentStatus.SUCCESS)) {
+            throw new BadRequestException("Order is already paid.");
+        }
+
+        // Validate amount exactly matches order total
+        if (request.getAmount().compareTo(order.getTotalAmount()) != 0) {
+            throw new BadRequestException("Payment amount must exactly match the order total amount.");
+        }
+
+        Payment payment = new Payment();
+        payment.setOrder(order);
+        payment.setAmount(request.getAmount());
+        payment.setPaymentMethod(request.getPaymentMethod());
+        payment.setStatus(PaymentStatus.PENDING);
+        payment.setCreatedAt(LocalDateTime.now());
+
+        Payment savedPayment = paymentRepository.save(payment);
+        return mapToDto(savedPayment);
+    }
+
+    public PaymentResponse confirmPayment(String email, Long paymentId, PaymentConfirmRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+
+        Order order = payment.getOrder();
+
+        // Check ownership
+        if (!order.getUser().getId().equals(user.getId()) && !"ADMIN".equals(user.getRole())) {
+            throw new ForbiddenException("Access denied: You do not own this order.");
+        }
+
+        // Reject cancelled orders
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new BadRequestException("Cannot process payment for a cancelled order.");
+        }
+
+        // Validate allowed status transitions (only SUCCESS or FAILED allowed for confirmation)
+        if (request.getStatus() != PaymentStatus.SUCCESS && request.getStatus() != PaymentStatus.FAILED) {
+            throw new BadRequestException("Invalid payment confirmation status. Only SUCCESS or FAILED are allowed.");
+        }
+
+        // Protect finalized payments (already SUCCESS or REFUNDED)
+        if (payment.getStatus() == PaymentStatus.SUCCESS || payment.getStatus() == PaymentStatus.REFUNDED) {
+            throw new BadRequestException("Payment is already finalized.");
+        }
+
+        if (request.getStatus() == PaymentStatus.SUCCESS) {
+            payment.setStatus(PaymentStatus.SUCCESS);
+            order.setStatus(OrderStatus.CONFIRMED);
+            orderRepository.save(order);
+            paymentRepository.save(payment);
+
+            notificationService.createNotification(
+                    user,
+                    NotificationType.PAYMENT_SUCCESS,
+                    "Payment of " + payment.getAmount() + " for order #" + order.getId() + " was successful."
+            );
+        } else {
+            payment.setStatus(PaymentStatus.FAILED);
+            paymentRepository.save(payment);
+
+            notificationService.createNotification(
+                    user,
+                    NotificationType.PAYMENT_FAILED,
+                    "Payment of " + payment.getAmount() + " for order #" + order.getId() + " failed. Please try again."
+            );
+        }
+
+        return mapToDto(payment);
+    }
+
     public PaymentResponse createPayment(String email, CreatePaymentRequest request) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -45,13 +138,13 @@ public class PaymentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
         // Check ownership
-        if (!order.getUser().getId().equals(user.getId()) && !user.getRole().equals("ADMIN")) {
+        if (!order.getUser().getId().equals(user.getId()) && !"ADMIN".equals(user.getRole())) {
             throw new ForbiddenException("Access denied: You do not own this order.");
         }
 
         // Check if order is already cancelled
         if (order.getStatus() == OrderStatus.CANCELLED) {
-            throw new BadRequestException("Cannot pay for a cancelled order.");
+            throw new BadRequestException("Cannot process payment for a cancelled order.");
         }
 
         // Prevent duplicate successful payments
@@ -108,7 +201,7 @@ public class PaymentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
 
         // Check ownership
-        if (!payment.getOrder().getUser().getId().equals(user.getId()) && !user.getRole().equals("ADMIN")) {
+        if (!payment.getOrder().getUser().getId().equals(user.getId()) && !"ADMIN".equals(user.getRole())) {
             throw new ForbiddenException("Access denied.");
         }
 
@@ -123,7 +216,7 @@ public class PaymentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
         // Check ownership
-        if (!order.getUser().getId().equals(user.getId()) && !user.getRole().equals("ADMIN")) {
+        if (!order.getUser().getId().equals(user.getId()) && !"ADMIN".equals(user.getRole())) {
             throw new ForbiddenException("Access denied.");
         }
 

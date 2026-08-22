@@ -1,6 +1,7 @@
 package com.technest.backend.controller;
 
 import com.technest.backend.dto.CreatePaymentRequest;
+import com.technest.backend.dto.PaymentConfirmRequest;
 import com.technest.backend.dto.PaymentResponse;
 import com.technest.backend.service.PaymentService;
 import jakarta.validation.Valid;
@@ -28,6 +29,22 @@ public class PaymentController {
 
     private String getAuthenticatedUserEmail() {
         return SecurityContextHolder.getContext().getAuthentication().getName();
+    }
+
+    @PostMapping("/initiate")
+    public ResponseEntity<PaymentResponse> initiatePayment(@Valid @RequestBody CreatePaymentRequest request) {
+        String email = getAuthenticatedUserEmail();
+        PaymentResponse response = paymentService.initiatePayment(email, request);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/{id}/confirm")
+    public ResponseEntity<PaymentResponse> confirmPayment(
+            @PathVariable Long id,
+            @Valid @RequestBody PaymentConfirmRequest request) {
+        String email = getAuthenticatedUserEmail();
+        PaymentResponse response = paymentService.confirmPayment(email, id, request);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping
