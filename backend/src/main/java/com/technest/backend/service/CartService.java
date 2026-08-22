@@ -7,13 +7,13 @@ import com.technest.backend.entity.Cart;
 import com.technest.backend.entity.CartItem;
 import com.technest.backend.entity.Product;
 import com.technest.backend.entity.User;
+import com.technest.backend.exception.BadRequestException;
+import com.technest.backend.exception.ForbiddenException;
+import com.technest.backend.exception.ResourceNotFoundException;
 import com.technest.backend.repository.CartItemRepository;
 import com.technest.backend.repository.CartRepository;
 import com.technest.backend.repository.ProductRepository;
 import com.technest.backend.repository.UserRepository;
-import com.technest.backend.exception.BadRequestException;
-import com.technest.backend.exception.ForbiddenException;
-import com.technest.backend.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,10 +55,21 @@ public class CartService {
     }
 
     public CartDto addItemToCart(String email, AddToCartRequest request) {
+        if (request == null || request.getProductId() == null) {
+            throw new BadRequestException("Product ID is required");
+        }
+        if (request.getQuantity() == null || request.getQuantity() <= 0) {
+            throw new BadRequestException("Quantity must be greater than 0");
+        }
+
         Cart cart = getOrCreateCart(email);
 
         Product product = productRepository.findById(request.getProductId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        if (product.getStock() <= 0) {
+            throw new BadRequestException("Product is out of stock: " + product.getName());
+        }
 
         Optional<CartItem> existingItem = cart.getItems().stream()
                 .filter(item -> item.getProduct().getId().equals(product.getId()))
@@ -66,8 +77,18 @@ public class CartService {
 
         if (existingItem.isPresent()) {
             CartItem item = existingItem.get();
-            item.setQuantity(item.getQuantity() + request.getQuantity());
+            int totalQuantity = item.getQuantity() + request.getQuantity();
+            if (totalQuantity > product.getStock()) {
+                throw new BadRequestException("Cannot add " + request.getQuantity() + " more. Only "
+                        + product.getStock() + " available in stock, and " + item.getQuantity()
+                        + " already in cart for product: " + product.getName());
+            }
+            item.setQuantity(totalQuantity);
         } else {
+            if (request.getQuantity() > product.getStock()) {
+                throw new BadRequestException("Requested quantity " + request.getQuantity()
+                        + " exceeds available stock " + product.getStock() + " for product: " + product.getName());
+            }
             CartItem newItem = new CartItem();
             newItem.setCart(cart);
             newItem.setProduct(product);
@@ -93,6 +114,11 @@ public class CartService {
             cart.removeItem(cartItem);
             cartItemRepository.delete(cartItem);
         } else {
+            Product product = cartItem.getProduct();
+            if (quantity > product.getStock()) {
+                throw new BadRequestException("Requested quantity " + quantity
+                        + " exceeds available stock " + product.getStock() + " for product: " + product.getName());
+            }
             cartItem.setQuantity(quantity);
             cartItemRepository.save(cartItem);
         }

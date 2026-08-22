@@ -1,7 +1,9 @@
 package com.technest.backend.controller;
 
+import com.technest.backend.dto.AdjustStockRequest;
 import com.technest.backend.dto.ProductRequest;
 import com.technest.backend.dto.ProductResponse;
+import com.technest.backend.dto.UpdateStockRequest;
 import com.technest.backend.service.AdminProductService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -9,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -66,6 +69,32 @@ public class AdminProductController {
             @Valid @RequestBody ProductRequest request) {
         String email = getAuthenticatedUserEmail();
         ProductResponse response = adminProductService.updateProduct(email, id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * PATCH /api/admin/products/{id}/stock
+     * Sets absolute product stock. ADMIN only.
+     */
+    @PatchMapping("/{id}/stock")
+    public ResponseEntity<ProductResponse> updateStock(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateStockRequest request) {
+        String email = getAuthenticatedUserEmail();
+        ProductResponse response = adminProductService.updateProductStock(email, id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * PATCH /api/admin/products/{id}/stock/adjust
+     * Adjusts product stock relatively (+/-). ADMIN only.
+     */
+    @PatchMapping("/{id}/stock/adjust")
+    public ResponseEntity<ProductResponse> adjustStock(
+            @PathVariable Long id,
+            @Valid @RequestBody AdjustStockRequest request) {
+        String email = getAuthenticatedUserEmail();
+        ProductResponse response = adminProductService.adjustProductStock(email, id, request);
         return ResponseEntity.ok(response);
     }
 

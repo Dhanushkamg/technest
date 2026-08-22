@@ -225,4 +225,117 @@ class AdminProductServiceTest {
 
         verify(productRepository, never()).delete(any(Product.class));
     }
+
+    // =========================================================
+    // updateProductStock
+    // =========================================================
+
+    @Test
+    void updateProductStock_adminSuccess_setsAbsoluteStock() {
+        when(userRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        when(productRepository.findById(100L)).thenReturn(Optional.of(product));
+        when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        com.technest.backend.dto.UpdateStockRequest req = new com.technest.backend.dto.UpdateStockRequest(75);
+        ProductResponse result = adminProductService.updateProductStock("admin@test.com", 100L, req);
+
+        assertThat(result.getStock()).isEqualTo(75);
+        verify(productRepository).save(product);
+    }
+
+    @Test
+    void updateProductStock_negativeStock_throwsBadRequest() {
+        when(userRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        when(productRepository.findById(100L)).thenReturn(Optional.of(product));
+        when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // First set a valid stock to verify service saves...
+        com.technest.backend.dto.UpdateStockRequest validReq = new com.technest.backend.dto.UpdateStockRequest(0);
+        ProductResponse result = adminProductService.updateProductStock("admin@test.com", 100L, validReq);
+        assertThat(result.getStock()).isEqualTo(0);
+
+        // Reset and verify negative fails
+        when(userRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        com.technest.backend.dto.UpdateStockRequest req = new com.technest.backend.dto.UpdateStockRequest(-1);
+        assertThatThrownBy(() -> adminProductService.updateProductStock("admin@test.com", 100L, req))
+                .isInstanceOf(com.technest.backend.exception.BadRequestException.class)
+                .hasMessageContaining("Stock must not be negative");
+    }
+
+    @Test
+    void updateProductStock_nonAdmin_throwsForbidden() {
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(regularUser));
+
+        com.technest.backend.dto.UpdateStockRequest req = new com.technest.backend.dto.UpdateStockRequest(10);
+
+        assertThatThrownBy(() -> adminProductService.updateProductStock("user@test.com", 100L, req))
+                .isInstanceOf(ForbiddenException.class);
+
+        verify(productRepository, never()).save(any());
+    }
+
+    @Test
+    void updateProductStock_productNotFound_throwsResourceNotFound() {
+        when(userRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        when(productRepository.findById(999L)).thenReturn(Optional.empty());
+
+        com.technest.backend.dto.UpdateStockRequest req = new com.technest.backend.dto.UpdateStockRequest(10);
+
+        assertThatThrownBy(() -> adminProductService.updateProductStock("admin@test.com", 999L, req))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Product not found");
+    }
+
+    // =========================================================
+    // adjustProductStock
+    // =========================================================
+
+    @Test
+    void adjustProductStock_positiveAdjustment_success() {
+        product.setStock(50);
+        when(userRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        when(productRepository.findById(100L)).thenReturn(Optional.of(product));
+        when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        com.technest.backend.dto.AdjustStockRequest req = new com.technest.backend.dto.AdjustStockRequest(20);
+        ProductResponse result = adminProductService.adjustProductStock("admin@test.com", 100L, req);
+
+        assertThat(result.getStock()).isEqualTo(70);
+    }
+
+    @Test
+    void adjustProductStock_negativeAdjustmentWithinBounds_success() {
+        product.setStock(50);
+        when(userRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        when(productRepository.findById(100L)).thenReturn(Optional.of(product));
+        when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        com.technest.backend.dto.AdjustStockRequest req = new com.technest.backend.dto.AdjustStockRequest(-30);
+        ProductResponse result = adminProductService.adjustProductStock("admin@test.com", 100L, req);
+
+        assertThat(result.getStock()).isEqualTo(20);
+    }
+
+    @Test
+    void adjustProductStock_resultWouldBeNegative_throwsBadRequest() {
+        product.setStock(5);
+        when(userRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        when(productRepository.findById(100L)).thenReturn(Optional.of(product));
+
+        com.technest.backend.dto.AdjustStockRequest req = new com.technest.backend.dto.AdjustStockRequest(-10);
+
+        assertThatThrownBy(() -> adminProductService.adjustProductStock("admin@test.com", 100L, req))
+                .isInstanceOf(com.technest.backend.exception.BadRequestException.class)
+                .hasMessageContaining("negative stock");
+    }
+
+    @Test
+    void adjustProductStock_nonAdmin_throwsForbidden() {
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(regularUser));
+
+        com.technest.backend.dto.AdjustStockRequest req = new com.technest.backend.dto.AdjustStockRequest(10);
+
+        assertThatThrownBy(() -> adminProductService.adjustProductStock("user@test.com", 100L, req))
+                .isInstanceOf(ForbiddenException.class);
+    }
 }

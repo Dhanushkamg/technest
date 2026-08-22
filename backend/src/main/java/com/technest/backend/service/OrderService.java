@@ -86,6 +86,31 @@ public class OrderService {
                     .orElseThrow(() -> new BadRequestException("No delivery address found. Please add a delivery address before checkout."));
         }
 
+        // Lock products in ascending ID order to prevent deadlocks under concurrent checkouts
+        java.util.List<CartItem> sortedItems = cart.getItems().stream()
+                .sorted(java.util.Comparator.comparing(ci -> ci.getProduct().getId()))
+                .collect(java.util.stream.Collectors.toList());
+
+        // Load locked product snapshots (pessimistic write lock)
+        java.util.Map<Long, Product> lockedProducts = new java.util.LinkedHashMap<>();
+        for (CartItem cartItem : sortedItems) {
+            Long productId = cartItem.getProduct().getId();
+            Product lockedProduct = productRepository.findByIdWithLock(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + cartItem.getProduct().getName()));
+            lockedProducts.put(productId, lockedProduct);
+        }
+
+        // --- Phase 1: Validate ALL stock before reducing ANY ---
+        for (CartItem cartItem : sortedItems) {
+            Product product = lockedProducts.get(cartItem.getProduct().getId());
+            if (product.getStock() < cartItem.getQuantity()) {
+                throw new BadRequestException(
+                        "Insufficient stock for '" + product.getName() + "'. "
+                        + "Available: " + product.getStock() + ", Requested: " + cartItem.getQuantity());
+            }
+        }
+
+        // --- Phase 2: All validations passed — reduce stock and build order ---
         Order order = new Order();
         order.setUser(user);
         order.setStatus(OrderStatus.PENDING);
@@ -102,14 +127,8 @@ public class OrderService {
 
         BigDecimal subtotal = BigDecimal.ZERO;
 
-        for (CartItem cartItem : cart.getItems()) {
-
-            Product product = cartItem.getProduct();
-
-            // Check stock availability
-            if (product.getStock() < cartItem.getQuantity()) {
-                throw new BadRequestException("Not enough stock for product: " + product.getName());
-            }
+        for (CartItem cartItem : sortedItems) {
+            Product product = lockedProducts.get(cartItem.getProduct().getId());
 
             // Reduce product stock
             product.setStock(product.getStock() - cartItem.getQuantity());
@@ -126,10 +145,7 @@ public class OrderService {
             BigDecimal itemSubtotal = product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
             orderItem.setSubtotal(itemSubtotal);
 
-            // Add item to order
             order.addItem(orderItem);
-
-            // Add to subtotal
             subtotal = subtotal.add(itemSubtotal);
         }
 

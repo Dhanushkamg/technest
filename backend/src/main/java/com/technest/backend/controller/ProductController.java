@@ -26,30 +26,36 @@ public class ProductController {
     /**
      * GET /api/products
      * Supports optional query parameters for search, filter, pagination, and sorting.
-     * Backward compatible — calling with no parameters returns page 0, size 20, sorted by id asc.
+     * Backward compatible — calling with no parameters returns page 0, size 10, sorted by id asc.
      *
-     * @param search     case-insensitive name search
-     * @param categoryId filter by category
-     * @param minPrice   minimum price (inclusive)
-     * @param maxPrice   maximum price (inclusive)
-     * @param page       zero-based page number (default 0)
-     * @param size       page size 1-100 (default 20)
-     * @param sortBy     field to sort by: id, name, price, stock (default id)
-     * @param sortDir    sort direction: asc, desc (default asc)
+     * @param search        case-insensitive name search
+     * @param category      filter by category name
+     * @param categoryId    filter by category id
+     * @param minPrice      minimum price (inclusive, >= 0)
+     * @param maxPrice      maximum price (inclusive, >= 0)
+     * @param page          zero-based page number (default 0)
+     * @param size          page size 1-100 (default 10)
+     * @param sortBy        field to sort by: id, name, price, stock, createdAt, averageRating (default id)
+     * @param sortDirection sort direction: asc, desc (default asc)
+     * @param sortDir       legacy alias for sortDirection
      */
     @GetMapping
     public ResponseEntity<PagedProductResponse> getAllProducts(
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) String category,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(defaultValue = "0")  int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
+            @RequestParam(required = false) String sortDirection,
+            @RequestParam(required = false) String sortDir) {
+
+        String effectiveSortDir = sortDirection != null ? sortDirection : (sortDir != null ? sortDir : "asc");
 
         PagedProductResponse result = productSearchService.search(
-                search, categoryId, minPrice, maxPrice, page, size, sortBy, sortDir);
+                search, category, categoryId, minPrice, maxPrice, page, size, sortBy, effectiveSortDir);
         return ResponseEntity.ok(result);
     }
 

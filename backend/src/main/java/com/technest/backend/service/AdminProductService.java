@@ -1,10 +1,13 @@
 package com.technest.backend.service;
 
+import com.technest.backend.dto.AdjustStockRequest;
 import com.technest.backend.dto.ProductRequest;
 import com.technest.backend.dto.ProductResponse;
+import com.technest.backend.dto.UpdateStockRequest;
 import com.technest.backend.entity.Category;
 import com.technest.backend.entity.Product;
 import com.technest.backend.entity.User;
+import com.technest.backend.exception.BadRequestException;
 import com.technest.backend.exception.ForbiddenException;
 import com.technest.backend.exception.ResourceNotFoundException;
 import com.technest.backend.repository.CategoryRepository;
@@ -64,6 +67,10 @@ public class AdminProductService {
     public ProductResponse createProduct(String email, ProductRequest request) {
         requireAdmin(email);
 
+        if (request.getStock() != null && request.getStock() < 0) {
+            throw new BadRequestException("Stock must not be negative");
+        }
+
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Category not found with id: " + request.getCategoryId()));
@@ -86,6 +93,10 @@ public class AdminProductService {
     public ProductResponse updateProduct(String email, Long productId, ProductRequest request) {
         requireAdmin(email);
 
+        if (request.getStock() != null && request.getStock() < 0) {
+            throw new BadRequestException("Stock must not be negative");
+        }
+
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Product not found with id: " + productId));
@@ -100,6 +111,55 @@ public class AdminProductService {
         product.setStock(request.getStock());
         product.setCategory(category);
 
+        return toResponse(productRepository.save(product));
+    }
+
+    // ---------------------------------------------------------
+    // UPDATE product stock directly
+    // ---------------------------------------------------------
+
+    @Transactional
+    public ProductResponse updateProductStock(String email, Long productId, UpdateStockRequest request) {
+        requireAdmin(email);
+
+        if (request == null || request.getStock() == null) {
+            throw new BadRequestException("Stock value is required");
+        }
+        if (request.getStock() < 0) {
+            throw new BadRequestException("Stock must not be negative. Received: " + request.getStock());
+        }
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Product not found with id: " + productId));
+
+        product.setStock(request.getStock());
+        return toResponse(productRepository.save(product));
+    }
+
+    // ---------------------------------------------------------
+    // ADJUST product stock relatively (+/-)
+    // ---------------------------------------------------------
+
+    @Transactional
+    public ProductResponse adjustProductStock(String email, Long productId, AdjustStockRequest request) {
+        requireAdmin(email);
+
+        if (request == null || request.getQuantity() == null) {
+            throw new BadRequestException("Adjustment quantity is required");
+        }
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Product not found with id: " + productId));
+
+        int updatedStock = product.getStock() + request.getQuantity();
+        if (updatedStock < 0) {
+            throw new BadRequestException("Stock adjustment results in negative stock: " + updatedStock
+                    + " (current: " + product.getStock() + ", adjustment: " + request.getQuantity() + ")");
+        }
+
+        product.setStock(updatedStock);
         return toResponse(productRepository.save(product));
     }
 

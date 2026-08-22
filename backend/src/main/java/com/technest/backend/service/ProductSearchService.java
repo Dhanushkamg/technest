@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,8 +26,16 @@ public class ProductSearchService {
     /** Maximum allowed page size to prevent abuse. */
     public static final int MAX_PAGE_SIZE = 100;
 
-    /** Only these fields are safe for ORDER BY to prevent HQL injection. */
-    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id", "name", "price", "stock");
+    /** Only these fields are safe for ORDER BY to prevent HQL injection. Maps lowercase to entity field names. */
+    private static final Map<String, String> ALLOWED_SORT_FIELDS = Map.of(
+            "id", "id",
+            "name", "name",
+            "price", "price",
+            "stock", "stock",
+            "createdat", "createdAt",
+            "averagerating", "averageRating",
+            "reviewcount", "reviewCount"
+    );
 
     private final ProductRepository productRepository;
 
@@ -42,27 +50,28 @@ public class ProductSearchService {
     @Transactional(readOnly = true)
     public PagedProductResponse search(
             String search,
+            String category,
             Long categoryId,
             BigDecimal minPrice,
             BigDecimal maxPrice,
             int page,
             int size,
             String sortBy,
-            String sortDir) {
+            String sortDirection) {
 
         // --- Validate inputs ---
         validatePage(page);
         validateSize(size);
         validatePriceRange(minPrice, maxPrice);
-        String validatedSortBy  = validateSortField(sortBy);
-        Sort.Direction direction = validateSortDirection(sortDir);
+        String validatedSortBy = validateSortField(sortBy);
+        Sort.Direction direction = validateSortDirection(sortDirection);
 
         // --- Build Pageable ---
-        Sort sort     = Sort.by(direction, validatedSortBy);
+        Sort sort = Sort.by(direction, validatedSortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
         // --- Build Specification ---
-        Specification<Product> spec = buildSpec(search, categoryId, minPrice, maxPrice);
+        Specification<Product> spec = buildSpec(search, category, categoryId, minPrice, maxPrice);
 
         // --- Query ---
         Page<Product> resultPage = productRepository.findAll(spec, pageable);
@@ -84,12 +93,26 @@ public class ProductSearchService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public PagedProductResponse search(
+            String search,
+            Long categoryId,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir) {
+        return search(search, null, categoryId, minPrice, maxPrice, page, size, sortBy, sortDir);
+    }
+
     // ---------------------------------------------------------
     // Specification builder
     // ---------------------------------------------------------
 
     private Specification<Product> buildSpec(
             String search,
+            String category,
             Long categoryId,
             BigDecimal minPrice,
             BigDecimal maxPrice) {
@@ -101,6 +124,13 @@ public class ProductSearchService {
                 predicates.add(cb.like(
                         cb.lower(root.get("name")),
                         "%" + search.trim().toLowerCase() + "%"
+                ));
+            }
+
+            if (category != null && !category.isBlank()) {
+                predicates.add(cb.equal(
+                        cb.lower(root.get("category").get("name")),
+                        category.trim().toLowerCase()
                 ));
             }
 
@@ -141,6 +171,12 @@ public class ProductSearchService {
     }
 
     private void validatePriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
+        if (minPrice != null && minPrice.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BadRequestException("minPrice must not be negative. Received: " + minPrice);
+        }
+        if (maxPrice != null && maxPrice.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BadRequestException("maxPrice must not be negative. Received: " + maxPrice);
+        }
         if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
             throw new BadRequestException(
                     "minPrice (" + minPrice + ") must not be greater than maxPrice (" + maxPrice + ")");
@@ -151,12 +187,12 @@ public class ProductSearchService {
         if (sortBy == null || sortBy.isBlank()) {
             return "id"; // default
         }
-        String lower = sortBy.trim().toLowerCase();
-        if (!ALLOWED_SORT_FIELDS.contains(lower)) {
+        String key = sortBy.trim().toLowerCase();
+        if (!ALLOWED_SORT_FIELDS.containsKey(key)) {
             throw new BadRequestException(
-                    "Invalid sortBy field: '" + sortBy + "'. Allowed values: " + ALLOWED_SORT_FIELDS);
+                    "Invalid sortBy field: '" + sortBy + "'. Allowed values: " + ALLOWED_SORT_FIELDS.values());
         }
-        return lower;
+        return ALLOWED_SORT_FIELDS.get(key);
     }
 
     private Sort.Direction validateSortDirection(String sortDir) {
@@ -164,10 +200,10 @@ public class ProductSearchService {
             return Sort.Direction.ASC; // default
         }
         return switch (sortDir.trim().toLowerCase()) {
-            case "asc"  -> Sort.Direction.ASC;
-            case "desc" -> Sort.Direction.DESC;
+            case "asc", "ascending"  -> Sort.Direction.ASC;
+            case "desc", "descending" -> Sort.Direction.DESC;
             default -> throw new BadRequestException(
-                    "Invalid sortDir: '" + sortDir + "'. Allowed values: asc, desc");
+                    "Invalid sort direction: '" + sortDir + "'. Allowed values: asc, desc");
         };
     }
 
