@@ -37,15 +37,15 @@ public class WishlistService {
 
     @Transactional
     public WishlistResponseDto addProductToWishlist(String email, Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id " + productId));
+
         if (wishlistRepository.existsByUser_EmailAndProduct_Id(email, productId)) {
             throw new BadRequestException("Product is already in the wishlist");
         }
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id " + productId));
 
         WishlistItem item = new WishlistItem();
         item.setUser(user);

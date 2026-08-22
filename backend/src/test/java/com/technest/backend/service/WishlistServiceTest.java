@@ -73,11 +73,22 @@ public class WishlistServiceTest {
     }
 
     @Test
+    void getWishlist_ReturnsEmptyWishlist() {
+        when(wishlistRepository.findByUser_Email(testUser.getEmail())).thenReturn(List.of());
+
+        WishlistResponseDto response = wishlistService.getWishlist(testUser.getEmail());
+
+        assertNotNull(response);
+        assertTrue(response.getItems().isEmpty());
+        verify(wishlistRepository, times(1)).findByUser_Email(testUser.getEmail());
+    }
+
+    @Test
     void addProductToWishlist_Success() {
+        when(productRepository.findById(testProduct.getId())).thenReturn(Optional.of(testProduct));
         when(wishlistRepository.existsByUser_EmailAndProduct_Id(testUser.getEmail(), testProduct.getId())).thenReturn(false);
         when(userRepository.findByEmail(testUser.getEmail())).thenReturn(Optional.of(testUser));
-        when(productRepository.findById(testProduct.getId())).thenReturn(Optional.of(testProduct));
-        when(wishlistRepository.findByUser_Email(testUser.getEmail())).thenReturn(List.of(testItem)); // Mocking the getWishlist call
+        when(wishlistRepository.findByUser_Email(testUser.getEmail())).thenReturn(List.of(testItem));
 
         WishlistResponseDto response = wishlistService.addProductToWishlist(testUser.getEmail(), testProduct.getId());
 
@@ -87,6 +98,7 @@ public class WishlistServiceTest {
 
     @Test
     void addProductToWishlist_AlreadyExists_ThrowsException() {
+        when(productRepository.findById(testProduct.getId())).thenReturn(Optional.of(testProduct));
         when(wishlistRepository.existsByUser_EmailAndProduct_Id(testUser.getEmail(), testProduct.getId())).thenReturn(true);
 
         assertThrows(BadRequestException.class, () -> wishlistService.addProductToWishlist(testUser.getEmail(), testProduct.getId()));
@@ -94,9 +106,17 @@ public class WishlistServiceTest {
     }
 
     @Test
+    void addProductToWishlist_ProductNotFound_ThrowsException() {
+        when(productRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> wishlistService.addProductToWishlist(testUser.getEmail(), 999L));
+        verify(wishlistRepository, never()).save(any());
+    }
+
+    @Test
     void removeProductFromWishlist_Success() {
         when(wishlistRepository.findByUser_EmailAndProduct_Id(testUser.getEmail(), testProduct.getId())).thenReturn(Optional.of(testItem));
-        when(wishlistRepository.findByUser_Email(testUser.getEmail())).thenReturn(List.of()); // Empty wishlist after removal
+        when(wishlistRepository.findByUser_Email(testUser.getEmail())).thenReturn(List.of());
 
         WishlistResponseDto response = wishlistService.removeProductFromWishlist(testUser.getEmail(), testProduct.getId());
 
