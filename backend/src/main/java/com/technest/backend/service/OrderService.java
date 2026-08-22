@@ -36,6 +36,7 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final AddressRepository addressRepository;
     private final NotificationService notificationService;
+    private final com.technest.backend.repository.CouponRepository couponRepository;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -43,7 +44,8 @@ public class OrderService {
             CartRepository cartRepository,
             ProductRepository productRepository,
             AddressRepository addressRepository,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            com.technest.backend.repository.CouponRepository couponRepository) {
 
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
@@ -51,6 +53,7 @@ public class OrderService {
         this.productRepository = productRepository;
         this.addressRepository = addressRepository;
         this.notificationService = notificationService;
+        this.couponRepository = couponRepository;
     }
 
     // =========================
@@ -58,7 +61,7 @@ public class OrderService {
     // =========================
 
     @Transactional
-    public OrderDto checkout(String email, Long addressId) {
+    public OrderDto checkout(String email, Long addressId, String couponCode) {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -84,7 +87,6 @@ public class OrderService {
         }
 
         Order order = new Order();
-
         order.setUser(user);
         order.setStatus(OrderStatus.PENDING);
         order.setCreatedAt(LocalDateTime.now());
@@ -98,7 +100,7 @@ public class OrderService {
                 deliveryAddress.getCountry()
         ));
 
-        BigDecimal totalAmount = BigDecimal.ZERO;
+        BigDecimal subtotal = BigDecimal.ZERO;
 
         for (CartItem cartItem : cart.getItems()) {
 
@@ -106,47 +108,70 @@ public class OrderService {
 
             // Check stock availability
             if (product.getStock() < cartItem.getQuantity()) {
-                throw new BadRequestException(
-                        "Not enough stock for product: "
-                                + product.getName());
+                throw new BadRequestException("Not enough stock for product: " + product.getName());
             }
 
             // Reduce product stock
-            product.setStock(
-                    product.getStock()
-                            - cartItem.getQuantity());
-
+            product.setStock(product.getStock() - cartItem.getQuantity());
             productRepository.save(product);
 
             // Create OrderItem
             OrderItem orderItem = new OrderItem();
-
             orderItem.setProduct(product);
+            orderItem.setProductName(product.getName());
+            orderItem.setPrice(product.getPrice());
+            orderItem.setQuantity(cartItem.getQuantity());
 
-            orderItem.setProductName(
-                    product.getName());
-
-            orderItem.setPrice(
-                    product.getPrice());
-
-            orderItem.setQuantity(
-                    cartItem.getQuantity());
-
-            // Calculate subtotal
-            BigDecimal subtotal = product.getPrice().multiply(
-                    BigDecimal.valueOf(
-                            cartItem.getQuantity()));
-
-            orderItem.setSubtotal(subtotal);
+            // Calculate item subtotal
+            BigDecimal itemSubtotal = product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+            orderItem.setSubtotal(itemSubtotal);
 
             // Add item to order
             order.addItem(orderItem);
 
-            // Add to total
-            totalAmount = totalAmount.add(subtotal);
+            // Add to subtotal
+            subtotal = subtotal.add(itemSubtotal);
         }
 
-        // Set total amount
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        com.technest.backend.entity.Coupon appliedCoupon = null;
+
+        if (couponCode != null && !couponCode.trim().isEmpty()) {
+            String normalizedCode = couponCode.trim().toUpperCase();
+            appliedCoupon = couponRepository.findByCodeWithLock(normalizedCode)
+                    .orElseThrow(() -> new BadRequestException("Invalid coupon code"));
+
+            if (!appliedCoupon.isActive()) {
+                throw new BadRequestException("Coupon is not active");
+            }
+            if (appliedCoupon.getExpirationDate() != null && LocalDateTime.now().isAfter(appliedCoupon.getExpirationDate())) {
+                throw new BadRequestException("Coupon is expired");
+            }
+            if (appliedCoupon.getMaxUsageLimit() != null && appliedCoupon.getUsageCount() >= appliedCoupon.getMaxUsageLimit()) {
+                throw new BadRequestException("Coupon usage limit reached");
+            }
+            if (appliedCoupon.getMinOrderAmount() != null && subtotal.compareTo(appliedCoupon.getMinOrderAmount()) < 0) {
+                throw new BadRequestException("Minimum order amount for this coupon not met");
+            }
+
+            if (appliedCoupon.getDiscountType() == com.technest.backend.entity.DiscountType.PERCENTAGE) {
+                discountAmount = subtotal.multiply(appliedCoupon.getDiscountValue()).divide(BigDecimal.valueOf(100));
+            } else if (appliedCoupon.getDiscountType() == com.technest.backend.entity.DiscountType.FIXED_AMOUNT) {
+                discountAmount = appliedCoupon.getDiscountValue();
+            }
+
+            if (discountAmount.compareTo(subtotal) > 0) {
+                discountAmount = subtotal;
+            }
+
+            appliedCoupon.setUsageCount(appliedCoupon.getUsageCount() + 1);
+        }
+
+        BigDecimal totalAmount = subtotal.subtract(discountAmount);
+
+        order.setSubtotal(subtotal);
+        order.setDiscountAmount(discountAmount);
+        order.setCouponCode(appliedCoupon != null ? appliedCoupon.getCode() : null);
         order.setTotalAmount(totalAmount);
 
         // Save order
@@ -337,6 +362,9 @@ public class OrderService {
         return new OrderDto(
                 order.getId(),
                 order.getUser().getId(),
+                order.getSubtotal(),
+                order.getDiscountAmount(),
+                order.getCouponCode(),
                 order.getTotalAmount(),
                 order.getStatus(),
                 order.getCreatedAt(),

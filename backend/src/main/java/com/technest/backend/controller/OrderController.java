@@ -29,7 +29,8 @@ public class OrderController {
     public ResponseEntity<OrderDto> checkout(@RequestBody(required = false) com.technest.backend.dto.CreateOrderRequest request) {
         String email = getAuthenticatedUserEmail();
         Long addressId = (request != null) ? request.getAddressId() : null;
-        OrderDto orderDto = orderService.checkout(email, addressId);
+        String couponCode = (request != null) ? request.getCouponCode() : null;
+        OrderDto orderDto = orderService.checkout(email, addressId, couponCode);
         return ResponseEntity.ok(orderDto);
     }
 

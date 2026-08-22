@@ -9,6 +9,9 @@ import java.util.List;
 public class OrderDto {
     private Long id;
     private Long userId;
+    private BigDecimal subtotal;
+    private BigDecimal discountAmount;
+    private String couponCode;
     private BigDecimal totalAmount;
     private OrderStatus status;
     private LocalDateTime createdAt;
@@ -18,9 +21,12 @@ public class OrderDto {
     public OrderDto() {
     }
 
-    public OrderDto(Long id, Long userId, BigDecimal totalAmount, OrderStatus status, LocalDateTime createdAt, DeliveryAddressSnapshotDto deliveryAddress, List<OrderItemDto> items) {
+    public OrderDto(Long id, Long userId, BigDecimal subtotal, BigDecimal discountAmount, String couponCode, BigDecimal totalAmount, OrderStatus status, LocalDateTime createdAt, DeliveryAddressSnapshotDto deliveryAddress, List<OrderItemDto> items) {
         this.id = id;
         this.userId = userId;
+        this.subtotal = subtotal;
+        this.discountAmount = discountAmount;
+        this.couponCode = couponCode;
         this.totalAmount = totalAmount;
         this.status = status;
         this.createdAt = createdAt;
@@ -42,6 +48,30 @@ public class OrderDto {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public BigDecimal getSubtotal() {
+        return subtotal;
+    }
+
+    public void setSubtotal(BigDecimal subtotal) {
+        this.subtotal = subtotal;
+    }
+
+    public BigDecimal getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public void setDiscountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
+    }
+
+    public String getCouponCode() {
+        return couponCode;
+    }
+
+    public void setCouponCode(String couponCode) {
+        this.couponCode = couponCode;
     }
 
     public BigDecimal getTotalAmount() {

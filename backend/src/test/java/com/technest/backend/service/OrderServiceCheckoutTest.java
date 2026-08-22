@@ -46,6 +46,9 @@ class OrderServiceCheckoutTest {
     private AddressRepository addressRepository;
 
     @Mock
+    private com.technest.backend.repository.CouponRepository couponRepository;
+
+    @Mock
     private NotificationService notificationService;
 
     @InjectMocks
@@ -105,7 +108,7 @@ class OrderServiceCheckoutTest {
             return o;
         });
 
-        OrderDto result = orderService.checkout("user@example.com", 100L);
+        OrderDto result = orderService.checkout("user@example.com", 100L, null);
 
         assertThat(result.getId()).isEqualTo(99L);
         assertThat(result.getDeliveryAddress().getFullName()).isEqualTo("John Doe");
@@ -123,7 +126,7 @@ class OrderServiceCheckoutTest {
             return o;
         });
 
-        OrderDto result = orderService.checkout("user@example.com", null);
+        OrderDto result = orderService.checkout("user@example.com", null, null);
 
         assertThat(result.getId()).isEqualTo(99L);
         assertThat(result.getDeliveryAddress().getFullName()).isEqualTo("John Doe");
@@ -135,7 +138,7 @@ class OrderServiceCheckoutTest {
         when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findByUserIdAndIsDefaultTrue(1L)).thenReturn(List.of());
 
-        assertThatThrownBy(() -> orderService.checkout("user@example.com", null))
+        assertThatThrownBy(() -> orderService.checkout("user@example.com", null, null))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("No delivery address found");
     }
@@ -148,7 +151,7 @@ class OrderServiceCheckoutTest {
         when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
 
-        assertThatThrownBy(() -> orderService.checkout("user@example.com", 100L))
+        assertThatThrownBy(() -> orderService.checkout("user@example.com", 100L, null))
                 .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("permission");
     }
@@ -159,8 +162,121 @@ class OrderServiceCheckoutTest {
         when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> orderService.checkout("user@example.com", 999L))
+        assertThatThrownBy(() -> orderService.checkout("user@example.com", 999L, null))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Address not found");
+    }
+
+    @Test
+    void checkout_withValidPercentageCoupon_appliesDiscount() {
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
+
+        com.technest.backend.entity.Coupon coupon = new com.technest.backend.entity.Coupon();
+        coupon.setCode("SAVE10");
+        coupon.setActive(true);
+        coupon.setDiscountType(com.technest.backend.entity.DiscountType.PERCENTAGE);
+        coupon.setDiscountValue(BigDecimal.valueOf(10)); // 10%
+        coupon.setUsageCount(0);
+
+        when(couponRepository.findByCodeWithLock("SAVE10")).thenReturn(Optional.of(coupon));
+
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        OrderDto result = orderService.checkout("user@example.com", 100L, "SAVE10");
+
+        assertThat(result.getSubtotal()).isEqualByComparingTo(BigDecimal.valueOf(200)); // 2 items * 100
+        assertThat(result.getDiscountAmount()).isEqualByComparingTo(BigDecimal.valueOf(20)); // 10% of 200
+        assertThat(result.getTotalAmount()).isEqualByComparingTo(BigDecimal.valueOf(180));
+        assertThat(result.getCouponCode()).isEqualTo("SAVE10");
+        assertThat(coupon.getUsageCount()).isEqualTo(1);
+    }
+
+    @Test
+    void checkout_withValidFixedAmountCoupon_appliesDiscount() {
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
+
+        com.technest.backend.entity.Coupon coupon = new com.technest.backend.entity.Coupon();
+        coupon.setCode("MINUS50");
+        coupon.setActive(true);
+        coupon.setDiscountType(com.technest.backend.entity.DiscountType.FIXED_AMOUNT);
+        coupon.setDiscountValue(BigDecimal.valueOf(50));
+        coupon.setUsageCount(0);
+
+        when(couponRepository.findByCodeWithLock("MINUS50")).thenReturn(Optional.of(coupon));
+
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        OrderDto result = orderService.checkout("user@example.com", 100L, "MINUS50");
+
+        assertThat(result.getSubtotal()).isEqualByComparingTo(BigDecimal.valueOf(200));
+        assertThat(result.getDiscountAmount()).isEqualByComparingTo(BigDecimal.valueOf(50));
+        assertThat(result.getTotalAmount()).isEqualByComparingTo(BigDecimal.valueOf(150));
+        assertThat(result.getCouponCode()).isEqualTo("MINUS50");
+        assertThat(coupon.getUsageCount()).isEqualTo(1);
+    }
+
+    @Test
+    void checkout_withFixedAmountExceedingSubtotal_capsDiscountToSubtotal() {
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
+
+        com.technest.backend.entity.Coupon coupon = new com.technest.backend.entity.Coupon();
+        coupon.setCode("MINUS500");
+        coupon.setActive(true);
+        coupon.setDiscountType(com.technest.backend.entity.DiscountType.FIXED_AMOUNT);
+        coupon.setDiscountValue(BigDecimal.valueOf(500));
+        coupon.setUsageCount(0);
+
+        when(couponRepository.findByCodeWithLock("MINUS500")).thenReturn(Optional.of(coupon));
+
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        OrderDto result = orderService.checkout("user@example.com", 100L, "MINUS500");
+
+        assertThat(result.getSubtotal()).isEqualByComparingTo(BigDecimal.valueOf(200));
+        assertThat(result.getDiscountAmount()).isEqualByComparingTo(BigDecimal.valueOf(200)); // Capped
+        assertThat(result.getTotalAmount()).isEqualByComparingTo(BigDecimal.valueOf(0)); // Cannot be negative
+        assertThat(result.getCouponCode()).isEqualTo("MINUS500");
+    }
+
+    @Test
+    void checkout_withInactiveCoupon_throwsBadRequest() {
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
+
+        com.technest.backend.entity.Coupon coupon = new com.technest.backend.entity.Coupon();
+        coupon.setCode("INACTIVE");
+        coupon.setActive(false);
+
+        when(couponRepository.findByCodeWithLock("INACTIVE")).thenReturn(Optional.of(coupon));
+
+        assertThatThrownBy(() -> orderService.checkout("user@example.com", 100L, "INACTIVE"))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("not active");
+    }
+
+    @Test
+    void checkout_withUsageLimitReached_throwsBadRequest() {
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
+
+        com.technest.backend.entity.Coupon coupon = new com.technest.backend.entity.Coupon();
+        coupon.setCode("LIMITED");
+        coupon.setActive(true);
+        coupon.setMaxUsageLimit(10);
+        coupon.setUsageCount(10); // Limit reached
+
+        when(couponRepository.findByCodeWithLock("LIMITED")).thenReturn(Optional.of(coupon));
+
+        assertThatThrownBy(() -> orderService.checkout("user@example.com", 100L, "LIMITED"))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("limit reached");
     }
 }

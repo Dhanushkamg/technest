@@ -132,6 +132,9 @@ public class AdminOrderService {
         return new OrderDto(
                 order.getId(),
                 order.getUser().getId(),
+                order.getSubtotal(),
+                order.getDiscountAmount(),
+                order.getCouponCode(),
                 order.getTotalAmount(),
                 order.getStatus(),
                 order.getCreatedAt(),
