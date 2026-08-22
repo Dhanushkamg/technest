@@ -16,6 +16,7 @@ import com.technest.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,7 +40,7 @@ public class ReviewService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-        List<Review> reviews = reviewRepository.findByProduct(product);
+        List<Review> reviews = reviewRepository.findByProductOrderByCreatedAtDesc(product);
         return reviews.stream().map(this::toResponse).collect(Collectors.toList());
     }
 
@@ -50,7 +51,7 @@ public class ReviewService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        Product product = productRepository.findById(productId)
+        Product product = productRepository.findByIdWithLock(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         if (!orderRepository.existsByUserAndStatusAndItems_Product(user, OrderStatus.DELIVERED, product)) {
@@ -77,22 +78,43 @@ public class ReviewService {
     public ReviewResponse updateReview(String email, Long productId, Long reviewId, ReviewRequest request) {
         validateRating(request.getRating());
 
+        Product product = productRepository.findByIdWithLock(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
         Review review = getReviewAndVerifyOwnership(email, productId, reviewId);
 
         review.setRating(request.getRating());
         review.setComment(request.getComment());
+        review.setUpdatedAt(LocalDateTime.now());
 
         review = reviewRepository.save(review);
-        updateProductRating(review.getProduct());
+        updateProductRating(product);
 
         return toResponse(review);
     }
 
     @Transactional
     public void deleteReview(String email, Long productId, Long reviewId) {
-        Review review = getReviewAndVerifyOwnership(email, productId, reviewId);
-        Product product = review.getProduct();
-        
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Product product = productRepository.findByIdWithLock(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found"));
+
+        if (!review.getProduct().getId().equals(productId)) {
+            throw new BadRequestException("Review does not belong to the specified product.");
+        }
+
+        boolean isOwner = review.getUser().getEmail().equals(email);
+        boolean isAdmin = "ADMIN".equals(user.getRole());
+
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenException("You can only modify your own reviews.");
+        }
+
         reviewRepository.delete(review);
         reviewRepository.flush(); // ensure deletion before recalculating
         updateProductRating(product);
@@ -144,6 +166,7 @@ public class ReviewService {
         response.setRating(review.getRating());
         response.setComment(review.getComment());
         response.setCreatedAt(review.getCreatedAt());
+        response.setUpdatedAt(review.getUpdatedAt());
         return response;
     }
 }
