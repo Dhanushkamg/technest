@@ -27,6 +27,9 @@ public class User {
     @Column(nullable = false)
     private String role;
 
+    @Column
+    private String phoneNumber;
+
     public User() {
     }
 
@@ -68,5 +71,13 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
     }
 }

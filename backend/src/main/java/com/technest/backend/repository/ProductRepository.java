@@ -2,10 +2,12 @@ package com.technest.backend.repository;
 
 import com.technest.backend.entity.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface ProductRepository extends JpaRepository<Product, Long> {
+public interface ProductRepository extends JpaRepository<Product, Long>,
+        JpaSpecificationExecutor<Product> {
 
     /**
      * Used by AdminCategoryService to check if any products reference a category
@@ -13,3 +15,4 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      */
     boolean existsByCategoryId(Long categoryId);
 }
+

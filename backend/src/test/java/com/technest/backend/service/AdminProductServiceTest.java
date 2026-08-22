@@ -213,7 +213,7 @@ class AdminProductServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Product not found");
 
-        verify(productRepository, never()).delete(any());
+        verify(productRepository, never()).delete(any(Product.class));
     }
 
     @Test
@@ -223,6 +223,6 @@ class AdminProductServiceTest {
         assertThatThrownBy(() -> adminProductService.deleteProduct("user@test.com", 100L))
                 .isInstanceOf(ForbiddenException.class);
 
-        verify(productRepository, never()).delete(any());
+        verify(productRepository, never()).delete(any(Product.class));
     }
 }
