@@ -12,10 +12,12 @@ import com.technest.backend.entity.User;
 import com.technest.backend.exception.BadRequestException;
 import com.technest.backend.exception.ForbiddenException;
 import com.technest.backend.exception.ResourceNotFoundException;
+import com.technest.backend.repository.AddressRepository;
 import com.technest.backend.repository.CartRepository;
 import com.technest.backend.repository.OrderRepository;
 import com.technest.backend.repository.ProductRepository;
 import com.technest.backend.repository.UserRepository;
+import com.technest.backend.entity.NotificationType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,17 +34,23 @@ public class OrderService {
     private final UserRepository userRepository;
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
+    private final AddressRepository addressRepository;
+    private final NotificationService notificationService;
 
     public OrderService(
             OrderRepository orderRepository,
             UserRepository userRepository,
             CartRepository cartRepository,
-            ProductRepository productRepository) {
+            ProductRepository productRepository,
+            AddressRepository addressRepository,
+            NotificationService notificationService) {
 
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.cartRepository = cartRepository;
         this.productRepository = productRepository;
+        this.addressRepository = addressRepository;
+        this.notificationService = notificationService;
     }
 
     // =========================
@@ -50,7 +58,7 @@ public class OrderService {
     // =========================
 
     @Transactional
-    public OrderDto checkout(String email) {
+    public OrderDto checkout(String email, Long addressId) {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -62,11 +70,33 @@ public class OrderService {
             throw new BadRequestException("Cart is empty");
         }
 
+        com.technest.backend.entity.Address deliveryAddress = null;
+        if (addressId != null) {
+            deliveryAddress = addressRepository.findById(addressId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Address not found"));
+            if (!deliveryAddress.getUser().getId().equals(user.getId())) {
+                throw new ForbiddenException("You do not have permission to use this address");
+            }
+        } else {
+            deliveryAddress = addressRepository.findByUserIdAndIsDefaultTrue(user.getId())
+                    .stream().findFirst()
+                    .orElseThrow(() -> new BadRequestException("No delivery address found. Please add a delivery address before checkout."));
+        }
+
         Order order = new Order();
 
         order.setUser(user);
         order.setStatus(OrderStatus.PENDING);
         order.setCreatedAt(LocalDateTime.now());
+        order.setDeliveryAddress(new com.technest.backend.entity.DeliveryAddressSnapshot(
+                deliveryAddress.getFullName(),
+                deliveryAddress.getPhoneNumber(),
+                deliveryAddress.getAddressLine1(),
+                deliveryAddress.getAddressLine2(),
+                deliveryAddress.getCity(),
+                deliveryAddress.getPostalCode(),
+                deliveryAddress.getCountry()
+        ));
 
         BigDecimal totalAmount = BigDecimal.ZERO;
 
@@ -124,8 +154,14 @@ public class OrderService {
 
         // Clear cart after successful checkout
         cart.getItems().clear();
-
         cartRepository.save(cart);
+
+        // Notify user
+        notificationService.createNotification(
+                user,
+                NotificationType.ORDER_CREATED,
+                "Your order #" + savedOrder.getId() + " has been placed successfully."
+        );
 
         return mapToDto(savedOrder);
     }
@@ -285,12 +321,26 @@ public class OrderService {
                         item.getSubtotal()))
                 .collect(Collectors.toList());
 
+        com.technest.backend.dto.DeliveryAddressSnapshotDto snapshotDto = null;
+        if (order.getDeliveryAddress() != null) {
+            snapshotDto = new com.technest.backend.dto.DeliveryAddressSnapshotDto(
+                    order.getDeliveryAddress().getFullName(),
+                    order.getDeliveryAddress().getPhoneNumber(),
+                    order.getDeliveryAddress().getAddressLine1(),
+                    order.getDeliveryAddress().getAddressLine2(),
+                    order.getDeliveryAddress().getCity(),
+                    order.getDeliveryAddress().getPostalCode(),
+                    order.getDeliveryAddress().getCountry()
+            );
+        }
+
         return new OrderDto(
                 order.getId(),
                 order.getUser().getId(),
                 order.getTotalAmount(),
                 order.getStatus(),
                 order.getCreatedAt(),
+                snapshotDto,
                 itemDtos);
     }
 }

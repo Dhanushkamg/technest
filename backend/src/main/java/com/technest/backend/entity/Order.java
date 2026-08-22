@@ -2,6 +2,7 @@ package com.technest.backend.entity;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -42,6 +43,9 @@ public class Order {
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    @Embedded
+    private DeliveryAddressSnapshot deliveryAddress;
 
     public Order() {
     }
@@ -97,5 +101,13 @@ public class Order {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public DeliveryAddressSnapshot getDeliveryAddress() {
+        return deliveryAddress;
+    }
+
+    public void setDeliveryAddress(DeliveryAddressSnapshot deliveryAddress) {
+        this.deliveryAddress = deliveryAddress;
     }
 }

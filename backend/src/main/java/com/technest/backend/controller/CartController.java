@@ -29,6 +29,15 @@ public class CartController {
         return ResponseEntity.ok(cartDto);
     }
 
+    // POST /api/cart/items  — standard REST convention
+    @PostMapping("/items")
+    public ResponseEntity<CartDto> addItemToCartRest(@RequestBody AddToCartRequest request) {
+        String email = getAuthenticatedUserEmail();
+        CartDto cartDto = cartService.addItemToCart(email, request);
+        return ResponseEntity.ok(cartDto);
+    }
+
+    // POST /api/cart/add  — kept for backward compatibility
     @PostMapping("/add")
     public ResponseEntity<CartDto> addItemToCart(@RequestBody AddToCartRequest request) {
         String email = getAuthenticatedUserEmail();

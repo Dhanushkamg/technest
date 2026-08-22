@@ -13,6 +13,7 @@ import com.technest.backend.exception.ResourceNotFoundException;
 import com.technest.backend.repository.OrderRepository;
 import com.technest.backend.repository.PaymentRepository;
 import com.technest.backend.repository.UserRepository;
+import com.technest.backend.entity.NotificationType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,11 +28,13 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    public PaymentService(PaymentRepository paymentRepository, OrderRepository orderRepository, UserRepository userRepository) {
+    public PaymentService(PaymentRepository paymentRepository, OrderRepository orderRepository, UserRepository userRepository, NotificationService notificationService) {
         this.paymentRepository = paymentRepository;
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     public PaymentResponse createPayment(String email, CreatePaymentRequest request) {
@@ -78,6 +81,22 @@ public class PaymentService {
         }
 
         Payment savedPayment = paymentRepository.save(payment);
+
+        // Notify user based on payment outcome
+        if (savedPayment.getStatus() == PaymentStatus.SUCCESS) {
+            notificationService.createNotification(
+                    user,
+                    NotificationType.PAYMENT_SUCCESS,
+                    "Payment of " + savedPayment.getAmount() + " for order #" + order.getId() + " was successful."
+            );
+        } else {
+            notificationService.createNotification(
+                    user,
+                    NotificationType.PAYMENT_FAILED,
+                    "Payment of " + savedPayment.getAmount() + " for order #" + order.getId() + " failed. Please try again."
+            );
+        }
+
         return mapToDto(savedPayment);
     }
 

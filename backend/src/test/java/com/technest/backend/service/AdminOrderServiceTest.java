@@ -36,6 +36,9 @@ class AdminOrderServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private NotificationService notificationService;
+
     @InjectMocks
     private AdminOrderService adminOrderService;
 

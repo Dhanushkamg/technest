@@ -34,6 +34,12 @@ public class Product {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
+    @Column(nullable = false, columnDefinition = "double precision default 0.0")
+    private Double averageRating = 0.0;
+
+    @Column(nullable = false, columnDefinition = "integer default 0")
+    private Integer reviewCount = 0;
+
     public Product() {
     }
 
@@ -83,5 +89,21 @@ public class Product {
 
     public void setCategory(Category category) {
         this.category = category;
+    }
+
+    public Double getAverageRating() {
+        return averageRating;
+    }
+
+    public void setAverageRating(Double averageRating) {
+        this.averageRating = averageRating;
+    }
+
+    public Integer getReviewCount() {
+        return reviewCount;
+    }
+
+    public void setReviewCount(Integer reviewCount) {
+        this.reviewCount = reviewCount;
     }
 }

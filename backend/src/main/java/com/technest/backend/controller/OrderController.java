@@ -26,9 +26,10 @@ public class OrderController {
     }
 
     @PostMapping
-    public ResponseEntity<OrderDto> checkout() {
+    public ResponseEntity<OrderDto> checkout(@RequestBody(required = false) com.technest.backend.dto.CreateOrderRequest request) {
         String email = getAuthenticatedUserEmail();
-        OrderDto orderDto = orderService.checkout(email);
+        Long addressId = (request != null) ? request.getAddressId() : null;
+        OrderDto orderDto = orderService.checkout(email, addressId);
         return ResponseEntity.ok(orderDto);
     }
 

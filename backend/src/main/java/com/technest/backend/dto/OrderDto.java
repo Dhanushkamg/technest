@@ -12,17 +12,19 @@ public class OrderDto {
     private BigDecimal totalAmount;
     private OrderStatus status;
     private LocalDateTime createdAt;
+    private DeliveryAddressSnapshotDto deliveryAddress;
     private List<OrderItemDto> items;
 
     public OrderDto() {
     }
 
-    public OrderDto(Long id, Long userId, BigDecimal totalAmount, OrderStatus status, LocalDateTime createdAt, List<OrderItemDto> items) {
+    public OrderDto(Long id, Long userId, BigDecimal totalAmount, OrderStatus status, LocalDateTime createdAt, DeliveryAddressSnapshotDto deliveryAddress, List<OrderItemDto> items) {
         this.id = id;
         this.userId = userId;
         this.totalAmount = totalAmount;
         this.status = status;
         this.createdAt = createdAt;
+        this.deliveryAddress = deliveryAddress;
         this.items = items;
     }
 
@@ -72,5 +74,13 @@ public class OrderDto {
 
     public void setItems(List<OrderItemDto> items) {
         this.items = items;
+    }
+
+    public DeliveryAddressSnapshotDto getDeliveryAddress() {
+        return deliveryAddress;
+    }
+
+    public void setDeliveryAddress(DeliveryAddressSnapshotDto deliveryAddress) {
+        this.deliveryAddress = deliveryAddress;
     }
 }

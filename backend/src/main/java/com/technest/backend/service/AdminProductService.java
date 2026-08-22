@@ -130,7 +130,9 @@ public class AdminProductService {
                 p.getPrice(),
                 p.getStock(),
                 p.getCategory().getId(),
-                p.getCategory().getName()
+                p.getCategory().getName(),
+                p.getAverageRating(),
+                p.getReviewCount()
         );
     }
 }

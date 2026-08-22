@@ -11,6 +11,7 @@ import com.technest.backend.exception.ForbiddenException;
 import com.technest.backend.exception.ResourceNotFoundException;
 import com.technest.backend.repository.OrderRepository;
 import com.technest.backend.repository.UserRepository;
+import com.technest.backend.entity.NotificationType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,10 +24,12 @@ public class AdminOrderService {
 
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    public AdminOrderService(OrderRepository orderRepository, UserRepository userRepository) {
+    public AdminOrderService(OrderRepository orderRepository, UserRepository userRepository, NotificationService notificationService) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     private User resolveAdminUser(String email) {
@@ -70,6 +73,14 @@ public class AdminOrderService {
 
         order.setStatus(newStatus);
         Order saved = orderRepository.save(order);
+
+        // Notify the order owner
+        notificationService.createNotification(
+                order.getUser(),
+                NotificationType.ORDER_STATUS_UPDATED,
+                "Your order #" + order.getId() + " status has been updated to " + newStatus + "."
+        );
+
         return mapToDto(saved);
     }
 
@@ -105,12 +116,26 @@ public class AdminOrderService {
                 .map(this::mapItemToDto)
                 .collect(Collectors.toList());
 
+        com.technest.backend.dto.DeliveryAddressSnapshotDto snapshotDto = null;
+        if (order.getDeliveryAddress() != null) {
+            snapshotDto = new com.technest.backend.dto.DeliveryAddressSnapshotDto(
+                    order.getDeliveryAddress().getFullName(),
+                    order.getDeliveryAddress().getPhoneNumber(),
+                    order.getDeliveryAddress().getAddressLine1(),
+                    order.getDeliveryAddress().getAddressLine2(),
+                    order.getDeliveryAddress().getCity(),
+                    order.getDeliveryAddress().getPostalCode(),
+                    order.getDeliveryAddress().getCountry()
+            );
+        }
+
         return new OrderDto(
                 order.getId(),
                 order.getUser().getId(),
                 order.getTotalAmount(),
                 order.getStatus(),
                 order.getCreatedAt(),
+                snapshotDto,
                 itemDtos);
     }
 
