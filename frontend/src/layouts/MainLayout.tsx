@@ -2,20 +2,31 @@ import React, { useState } from 'react';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { ShoppingBag, User, Heart, Cpu, LogOut, ShieldAlert, Package, ChevronDown } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCartStore } from '../store/useCartStore';
+import { MiniCart } from '../components/cart/MiniCart';
 
 export const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuthStore();
   const cartItemCount = useCartStore((state) => state.cartItemCount);
+  const isMiniCartOpen = useCartStore((state) => state.isMiniCartOpen);
+  const openMiniCart = useCartStore((state) => state.openMiniCart);
+  const closeMiniCart = useCartStore((state) => state.closeMiniCart);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const roleUpper = (user?.role || '').toUpperCase();
   const isAdmin = roleUpper === 'ROLE_ADMIN' || roleUpper === 'ADMIN';
 
+  const queryClient = useQueryClient();
+
   const handleLogout = () => {
     logout();
+    // Reset cart state and query cache so no stale data is shown for the next user
+    useCartStore.getState().clearCart();
+    useCartStore.getState().closeMiniCart();
+    queryClient.removeQueries({ queryKey: ['cart'] });
     setIsDropdownOpen(false);
     toast.success('Successfully logged out.');
     navigate('/');
@@ -61,8 +72,8 @@ export const MainLayout: React.FC = () => {
               <Heart className="w-5 h-5" />
             </Link>
 
-            <Link 
-              to="/cart" 
+            <button
+              onClick={() => openMiniCart()}
               className="p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 transition-colors relative border border-slate-700/50"
               title="Shopping Cart"
             >
@@ -72,7 +83,7 @@ export const MainLayout: React.FC = () => {
                   {cartItemCount > 99 ? '99+' : cartItemCount}
                 </span>
               )}
-            </Link>
+            </button>
 
             {isAuthenticated ? (
               <div className="relative">
@@ -159,6 +170,9 @@ export const MainLayout: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* Mini Cart Drawer */}
+      <MiniCart isOpen={isMiniCartOpen} onClose={closeMiniCart} />
 
       {/* Dynamic Content */}
       <main className="flex-grow">

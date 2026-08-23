@@ -22,6 +22,7 @@ import { getProductImage } from '../utils/productImages';
 import RatingStars from '../components/common/RatingStars';
 import { useCart } from '../hooks/useCart';
 import { useAuthStore } from '../store/useAuthStore';
+import { useCartStore } from '../store/useCartStore';
 import { wishlistApi } from '../api/wishlistApi';
 
 export const ProductDetailPage: React.FC = () => {
@@ -31,6 +32,7 @@ export const ProductDetailPage: React.FC = () => {
 
   const { addToCart, isAddingToCart } = useCart();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const openMiniCart = useCartStore((state) => state.openMiniCart);
 
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -65,7 +67,8 @@ export const ProductDetailPage: React.FC = () => {
 
     try {
       await addToCart({ productId: product.id, quantity });
-      toast.success(`Added ${quantity} x ${product.name} to cart!`);
+      toast.success(`Added ${quantity} × ${product.name} to cart!`);
+      openMiniCart();
     } catch {
       // Handled in axios interceptor
     }

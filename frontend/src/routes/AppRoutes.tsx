@@ -13,8 +13,8 @@ import RegisterPage from '../pages/RegisterPage';
 import ProfilePage from '../pages/ProfilePage';
 import UnauthorizedPage from '../pages/UnauthorizedPage';
 
+import CartPage from '../pages/customer/CartPage';
 import {
-  CartPage,
   CheckoutPage,
   OrdersPage,
   WishlistPage,
