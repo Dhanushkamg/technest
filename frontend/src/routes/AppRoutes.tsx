@@ -14,11 +14,12 @@ import ProfilePage from '../pages/ProfilePage';
 import UnauthorizedPage from '../pages/UnauthorizedPage';
 
 import CartPage from '../pages/customer/CartPage';
-import {
-  CheckoutPage,
-  OrdersPage,
-  WishlistPage,
-} from '../pages/Pages';
+import CheckoutPage from '../pages/customer/CheckoutPage';
+import OrderSuccessPage from '../pages/customer/OrderSuccessPage';
+import OrdersPage from '../pages/customer/OrdersPage';
+import OrderDetailPage from '../pages/customer/OrderDetailPage';
+
+import { WishlistPage } from '../pages/Pages';
 
 import {
   AdminDashboardPage,
@@ -57,6 +58,14 @@ export const AppRoutes: React.FC = () => {
           }
         />
         <Route
+          path="/order-success/:orderId"
+          element={
+            <ProtectedRoute>
+              <OrderSuccessPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/profile"
           element={
             <ProtectedRoute>
@@ -69,6 +78,14 @@ export const AppRoutes: React.FC = () => {
           element={
             <ProtectedRoute>
               <OrdersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/orders/:id"
+          element={
+            <ProtectedRoute>
+              <OrderDetailPage />
             </ProtectedRoute>
           }
         />

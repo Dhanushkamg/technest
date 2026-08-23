@@ -6,14 +6,15 @@ export interface OrderItem {
   productName: string;
   price: number;
   quantity: number;
+  subtotal: number;
 }
 
 export interface DeliveryAddressSnapshot {
   fullName: string;
-  phone: string;
-  streetAddress: string;
+  phoneNumber: string;
+  addressLine1: string;
+  addressLine2?: string;
   city: string;
-  state: string;
   postalCode: string;
   country: string;
 }
@@ -23,16 +24,16 @@ export interface Order {
   userId: number;
   subtotal: number;
   discountAmount: number;
-  couponCode?: string;
+  couponCode?: string | null;
   totalAmount: number;
   status: OrderStatus;
   createdAt: string;
-  deliveryAddress?: DeliveryAddressSnapshot;
+  deliveryAddress?: DeliveryAddressSnapshot | null;
   items: OrderItem[];
 }
 
 export interface CreateOrderRequest {
-  deliveryAddressId?: number;
+  addressId?: number;
   couponCode?: string;
 }
 

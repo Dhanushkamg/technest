@@ -1,4 +1,4 @@
-export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED';
+export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED';
 
 export interface Payment {
   id: number;
@@ -11,11 +11,10 @@ export interface Payment {
 
 export interface CreatePaymentRequest {
   orderId: number;
+  amount: number;
   paymentMethod: string;
 }
 
 export interface PaymentConfirmRequest {
-  paymentId: number;
-  paymentIntentId?: string;
   status: PaymentStatus;
 }
