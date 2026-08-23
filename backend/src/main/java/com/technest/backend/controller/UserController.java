@@ -22,13 +22,13 @@ public class UserController {
         this.userService = userService;
     }
 
-    @GetMapping("/me")
+    @GetMapping({"/me", "/profile"})
     public ResponseEntity<UserProfileResponse> getProfile() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(userService.getUserProfile(email));
     }
 
-    @PutMapping("/me")
+    @PutMapping({"/me", "/profile"})
     public ResponseEntity<UserProfileResponse> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(userService.updateUserProfile(email, request));

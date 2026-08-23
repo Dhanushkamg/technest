@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/users/me/addresses")
+@RequestMapping({"/api/addresses", "/api/users/me/addresses"})
 public class AddressController {
 
     private final AddressService addressService;
