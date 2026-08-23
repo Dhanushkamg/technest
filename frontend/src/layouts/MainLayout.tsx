@@ -1,15 +1,25 @@
-import React from 'react';
-import { Link, Outlet } from 'react-router-dom';
-import { ShoppingBag, User, Heart, Cpu, LogOut, ShieldAlert } from 'lucide-react';
-import { Toaster } from 'sonner';
+import React, { useState } from 'react';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { ShoppingBag, User, Heart, Cpu, LogOut, ShieldAlert, Package, ChevronDown } from 'lucide-react';
+import { Toaster, toast } from 'sonner';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCartStore } from '../store/useCartStore';
 
 export const MainLayout: React.FC = () => {
+  const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuthStore();
   const cartItemCount = useCartStore((state) => state.cartItemCount);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const isAdmin = user?.role === 'ROLE_ADMIN' || user?.role === 'ADMIN';
+  const roleUpper = (user?.role || '').toUpperCase();
+  const isAdmin = roleUpper === 'ROLE_ADMIN' || roleUpper === 'ADMIN';
+
+  const handleLogout = () => {
+    logout();
+    setIsDropdownOpen(false);
+    toast.success('Successfully logged out.');
+    navigate('/');
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-white font-sans antialiased">
@@ -65,22 +75,70 @@ export const MainLayout: React.FC = () => {
             </Link>
 
             {isAuthenticated ? (
-              <div className="flex items-center gap-3">
-                <Link
-                  to="/profile"
-                  className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-slate-200 transition-all"
-                >
-                  <User className="w-4 h-4 text-cyan-400" />
-                  <span className="text-sm font-medium hidden sm:inline">{user?.name?.split(' ')[0] || 'Account'}</span>
-                </Link>
-
+              <div className="relative">
                 <button
-                  onClick={logout}
-                  className="p-2.5 rounded-xl bg-slate-800/60 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 border border-slate-700/50 hover:border-rose-800/50 transition-colors"
-                  title="Log out"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-slate-200 transition-all cursor-pointer"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-400/30 flex items-center justify-center font-bold text-xs">
+                    {user?.name?.[0]?.toUpperCase() || 'U'}
+                  </div>
+                  <span className="text-sm font-medium hidden sm:inline">{user?.name?.split(' ')[0] || 'Account'}</span>
+                  <ChevronDown className="w-4 h-4 text-slate-400" />
                 </button>
+
+                {/* Account Dropdown */}
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-2 z-50 backdrop-blur-xl">
+                    <div className="px-3 py-2 border-b border-slate-800/80 mb-1">
+                      <p className="text-xs font-semibold text-slate-400">Signed in as</p>
+                      <p className="text-sm font-bold text-white truncate">{user?.email}</p>
+                    </div>
+
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 text-sm transition-colors"
+                    >
+                      <User className="w-4 h-4 text-cyan-400" /> Profile & Addresses
+                    </Link>
+
+                    <Link
+                      to="/orders"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 text-sm transition-colors"
+                    >
+                      <Package className="w-4 h-4 text-cyan-400" /> My Orders
+                    </Link>
+
+                    <Link
+                      to="/wishlist"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 text-sm transition-colors"
+                    >
+                      <Heart className="w-4 h-4 text-rose-400" /> Saved Items
+                    </Link>
+
+                    {isAdmin && (
+                      <Link
+                        to="/admin/dashboard"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-amber-400 hover:bg-amber-950/30 text-sm font-semibold transition-colors"
+                      >
+                        <ShieldAlert className="w-4 h-4" /> Admin Dashboard
+                      </Link>
+                    )}
+
+                    <div className="border-t border-slate-800/80 mt-1 pt-1">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-950/30 text-sm font-medium transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" /> Sign Out
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -107,7 +165,7 @@ export const MainLayout: React.FC = () => {
         <Outlet />
       </main>
 
-      {/* Premium Dark Footer */}
+      {/* Footer */}
       <footer className="bg-slate-900 border-t border-slate-800/80 mt-auto py-12 text-slate-400 text-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-3">

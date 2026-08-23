@@ -14,10 +14,11 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  const isAdmin = user?.role === 'ROLE_ADMIN' || user?.role === 'ADMIN';
+  const roleUpper = (user?.role || '').toUpperCase();
+  const isAdmin = roleUpper === 'ROLE_ADMIN' || roleUpper === 'ADMIN';
 
   if (!isAdmin) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return <>{children}</>;

@@ -10,10 +10,12 @@ export interface User {
 
 export interface AuthResponse {
   token: string;
-  id: number;
-  name: string;
-  email: string;
-  role: UserRole;
+  id?: number;
+  userId?: number;
+  type?: string;
+  name?: string;
+  email?: string;
+  role?: UserRole;
 }
 
 export interface LoginRequest {
