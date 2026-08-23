@@ -8,12 +8,12 @@ export const wishlistApi = {
   },
 
   addToWishlist: async (productId: number): Promise<WishlistResponse> => {
-    const response = await axiosClient.post<WishlistResponse>(`/wishlist/items/${productId}`);
+    const response = await axiosClient.post<WishlistResponse>(`/wishlist/${productId}`);
     return response.data;
   },
 
-  removeFromWishlist: async (itemId: number): Promise<WishlistResponse> => {
-    const response = await axiosClient.delete<WishlistResponse>(`/wishlist/items/${itemId}`);
+  removeFromWishlist: async (productId: number): Promise<WishlistResponse> => {
+    const response = await axiosClient.delete<WishlistResponse>(`/wishlist/${productId}`);
     return response.data;
   },
 };

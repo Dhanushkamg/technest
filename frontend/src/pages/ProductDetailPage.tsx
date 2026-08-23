@@ -15,6 +15,7 @@ import {
   Plus,
   Minus,
   AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { productApi } from '../api/productApi';
@@ -23,7 +24,8 @@ import RatingStars from '../components/common/RatingStars';
 import { useCart } from '../hooks/useCart';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCartStore } from '../store/useCartStore';
-import { wishlistApi } from '../api/wishlistApi';
+import { useWishlist } from '../hooks/useWishlist';
+import ProductReviews from '../components/product/ProductReviews';
 
 export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -33,10 +35,13 @@ export const ProductDetailPage: React.FC = () => {
   const { addToCart, isAddingToCart } = useCart();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const openMiniCart = useCartStore((state) => state.openMiniCart);
+  const { isInWishlist, toggleWishlist, isAddingToWishlist, isRemovingFromWishlist } = useWishlist();
 
   const [quantity, setQuantity] = useState(1);
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const [imgError, setImgError] = useState(false);
+
+  const isWishlisted = isInWishlist(productId);
+  const isWishlistPending = isAddingToWishlist || isRemovingFromWishlist;
 
   // Fetch product by ID
   const {
@@ -99,16 +104,9 @@ export const ProductDetailPage: React.FC = () => {
     if (!product) return;
 
     try {
-      if (isWishlisted) {
-        setIsWishlisted(false);
-        toast.info(`Removed ${product.name} from wishlist`);
-      } else {
-        await wishlistApi.addToWishlist(product.id);
-        setIsWishlisted(true);
-        toast.success(`Added ${product.name} to wishlist!`);
-      }
+      await toggleWishlist(product.id, product.name);
     } catch {
-      // Handled in axios interceptor
+      // Handled in hook
     }
   };
 
@@ -208,10 +206,15 @@ export const ProductDetailPage: React.FC = () => {
           {/* Wishlist Floating Button */}
           <button
             onClick={handleToggleWishlist}
-            className="absolute top-9 right-9 p-3 rounded-2xl bg-slate-950/80 backdrop-blur-md text-slate-300 hover:text-rose-400 border border-slate-700/60 shadow-xl transition-all"
+            disabled={isWishlistPending}
+            className="absolute top-9 right-9 p-3 rounded-2xl bg-slate-950/80 backdrop-blur-md text-slate-300 hover:text-rose-400 border border-slate-700/60 shadow-xl transition-all disabled:opacity-50"
             title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
           >
-            <Heart className={`w-5 h-5 ${isWishlisted ? 'text-rose-500 fill-rose-500' : ''}`} />
+            {isWishlistPending ? (
+              <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+            ) : (
+              <Heart className={`w-5 h-5 ${isWishlisted ? 'text-rose-500 fill-rose-500' : ''}`} />
+            )}
           </button>
         </div>
 
@@ -309,6 +312,13 @@ export const ProductDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Embedded Product Reviews & Ratings Section */}
+      <ProductReviews
+        productId={product.id}
+        averageRating={product.averageRating}
+        reviewCount={product.reviewCount}
+      />
     </div>
   );
 };

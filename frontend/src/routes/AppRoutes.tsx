@@ -19,7 +19,7 @@ import OrderSuccessPage from '../pages/customer/OrderSuccessPage';
 import OrdersPage from '../pages/customer/OrdersPage';
 import OrderDetailPage from '../pages/customer/OrderDetailPage';
 
-import { WishlistPage } from '../pages/Pages';
+import WishlistPage from '../pages/customer/WishlistPage';
 
 import {
   AdminDashboardPage,

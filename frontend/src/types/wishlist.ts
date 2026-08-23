@@ -6,7 +6,5 @@ export interface WishlistItem {
 }
 
 export interface WishlistResponse {
-  id: number;
-  userId: number;
   items: WishlistItem[];
 }

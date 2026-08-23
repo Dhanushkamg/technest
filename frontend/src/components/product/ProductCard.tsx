@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, ShoppingBag, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { Heart, ShoppingBag, CheckCircle, AlertCircle, XCircle, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import type { Product } from '../../types';
@@ -9,7 +9,7 @@ import { RatingStars } from '../common/RatingStars';
 import { useCart } from '../../hooks/useCart';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useCartStore } from '../../store/useCartStore';
-import { wishlistApi } from '../../api/wishlistApi';
+import { useWishlist } from '../../hooks/useWishlist';
 
 interface ProductCardProps {
   product: Product;
@@ -20,8 +20,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart, isAddingToCart } = useCart();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const openMiniCart = useCartStore((state) => state.openMiniCart);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+  const { isInWishlist, toggleWishlist, isAddingToWishlist, isRemovingFromWishlist } = useWishlist();
+
   const [imgError, setImgError] = useState(false);
+
+  const isWishlisted = isInWishlist(product.id);
+  const isWishlistPending = isAddingToWishlist || isRemovingFromWishlist;
 
   const imageUrl = imgError
     ? 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=800&q=80'
@@ -57,16 +61,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     }
 
     try {
-      if (isWishlisted) {
-        setIsWishlisted(false);
-        toast.info(`Removed ${product.name} from wishlist`);
-      } else {
-        await wishlistApi.addToWishlist(product.id);
-        setIsWishlisted(true);
-        toast.success(`Added ${product.name} to wishlist!`);
-      }
+      await toggleWishlist(product.id, product.name);
     } catch {
-      // Handled in axios interceptor
+      // Handled in hook
     }
   };
 
@@ -114,10 +111,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {/* Wishlist Button Overlay */}
           <button
             onClick={handleToggleWishlist}
-            className="absolute top-3 right-3 p-2 rounded-xl bg-slate-900/80 backdrop-blur-md text-slate-300 hover:text-rose-400 border border-slate-700/60 transition-colors z-10"
+            disabled={isWishlistPending}
+            className="absolute top-3 right-3 p-2 rounded-xl bg-slate-900/80 backdrop-blur-md text-slate-300 hover:text-rose-400 border border-slate-700/60 transition-colors z-10 disabled:opacity-50"
             title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
           >
-            <Heart className={`w-4 h-4 ${isWishlisted ? 'text-rose-500 fill-rose-500' : ''}`} />
+            {isWishlistPending ? (
+              <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+            ) : (
+              <Heart className={`w-4 h-4 ${isWishlisted ? 'text-rose-500 fill-rose-500' : ''}`} />
+            )}
           </button>
 
           {/* Stock Badge Overlay */}
