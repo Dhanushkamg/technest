@@ -6,9 +6,9 @@ import ProtectedRoute from './ProtectedRoute';
 import AdminRoute from './AdminRoute';
 
 import HomePage from '../pages/HomePage';
+import ProductsPage from '../pages/ProductsPage';
+import ProductDetailPage from '../pages/ProductDetailPage';
 import {
-  ProductsPage,
-  ProductDetailPage,
   LoginPage,
   RegisterPage,
   CartPage,

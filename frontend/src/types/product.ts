@@ -20,19 +20,23 @@ export interface ProductRequest {
 }
 
 export interface ProductQueryParams {
-  categoryId?: number;
-  search?: string;
   page?: number;
   size?: number;
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
+  search?: string;
+  categoryId?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  minRating?: number;
 }
 
 export interface PagedProductResponse {
   content: Product[];
-  pageNo: number;
-  pageSize: number;
+  page: number;
+  size: number;
   totalElements: number;
   totalPages: number;
+  first: boolean;
   last: boolean;
 }
