@@ -9,3 +9,4 @@ export * from './wishlist';
 export * from './notification';
 export * from './dashboard';
 export * from './address';
+export * from './coupon';

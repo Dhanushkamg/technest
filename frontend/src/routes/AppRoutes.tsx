@@ -18,14 +18,13 @@ import CheckoutPage from '../pages/customer/CheckoutPage';
 import OrderSuccessPage from '../pages/customer/OrderSuccessPage';
 import OrdersPage from '../pages/customer/OrdersPage';
 import OrderDetailPage from '../pages/customer/OrderDetailPage';
-
 import WishlistPage from '../pages/customer/WishlistPage';
 
-import {
-  AdminDashboardPage,
-  AdminProductsPage,
-  AdminOrdersPage,
-} from '../pages/admin/AdminPages';
+import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
+import AdminProductsPage from '../pages/admin/AdminProductsPage';
+import AdminCategoriesPage from '../pages/admin/AdminCategoriesPage';
+import AdminOrdersPage from '../pages/admin/AdminOrdersPage';
+import AdminCouponsPage from '../pages/admin/AdminCouponsPage';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -107,9 +106,12 @@ export const AppRoutes: React.FC = () => {
           </AdminRoute>
         }
       >
+        <Route index path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
         <Route path="/admin/products" element={<AdminProductsPage />} />
+        <Route path="/admin/categories" element={<AdminCategoriesPage />} />
         <Route path="/admin/orders" element={<AdminOrdersPage />} />
+        <Route path="/admin/coupons" element={<AdminCouponsPage />} />
       </Route>
 
       {/* Fallback Catch-all Route */}

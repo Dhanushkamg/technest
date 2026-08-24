@@ -1,24 +1,39 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingBag, ArrowLeft, Cpu, ShieldCheck, LogOut } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingBag,
+  Layers,
+  Tag,
+  ArrowLeft,
+  Cpu,
+  ShieldCheck,
+  LogOut,
+  Menu,
+  X,
+} from 'lucide-react';
 import { Toaster } from 'sonner';
 import { useAuthStore } from '../store/useAuthStore';
 
 export const AdminLayout: React.FC = () => {
   const { user, logout } = useAuthStore();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const navItems = [
     { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
     { label: 'Products', path: '/admin/products', icon: Package },
+    { label: 'Categories', path: '/admin/categories', icon: Layers },
     { label: 'Orders', path: '/admin/orders', icon: ShoppingBag },
+    { label: 'Coupons', path: '/admin/coupons', icon: Tag },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex font-sans antialiased">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row font-sans antialiased selection:bg-cyan-500 selection:text-white">
       <Toaster position="top-right" richColors closeButton theme="dark" />
 
-      {/* Admin Sidebar */}
-      <aside className="w-64 bg-slate-900/90 backdrop-blur-xl border-r border-slate-800/80 flex flex-col justify-between flex-shrink-0 min-h-screen">
+      {/* Desktop Admin Sidebar */}
+      <aside className="hidden md:flex w-64 bg-slate-900/90 backdrop-blur-xl border-r border-slate-800/80 flex-col justify-between flex-shrink-0 min-h-screen">
         <div>
           {/* Admin Header / Logo */}
           <div className="h-20 px-6 flex items-center gap-3 border-b border-slate-800/80">
@@ -76,10 +91,65 @@ export const AdminLayout: React.FC = () => {
         </div>
       </aside>
 
+      {/* Mobile Header */}
+      <div className="md:hidden flex items-center justify-between px-4 h-16 bg-slate-900 border-b border-slate-800 z-50">
+        <div className="flex items-center gap-2">
+          <Cpu className="w-5 h-5 text-cyan-400" />
+          <span className="font-bold text-white text-base">TechNest Admin</span>
+        </div>
+        <button
+          onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+          className="p-2 rounded-lg bg-slate-800 text-slate-300"
+        >
+          {mobileSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      </div>
+
+      {/* Mobile Drawer */}
+      {mobileSidebarOpen && (
+        <div className="md:hidden fixed inset-0 z-40 bg-black/80 backdrop-blur-sm flex">
+          <div className="w-64 bg-slate-900 border-r border-slate-800 p-4 flex flex-col justify-between h-full pt-20">
+            <nav className="space-y-2">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm ${
+                      isActive ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'text-slate-400'
+                    }`
+                  }
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
+            </nav>
+
+            <div className="space-y-2 pt-4 border-t border-slate-800">
+              <Link
+                to="/"
+                onClick={() => setMobileSidebarOpen(false)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-slate-400 text-sm"
+              >
+                <ArrowLeft className="w-4 h-4" /> Storefront
+              </Link>
+              <button
+                onClick={() => { logout(); setMobileSidebarOpen(false); }}
+                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-rose-400 text-sm"
+              >
+                <LogOut className="w-4 h-4" /> Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Admin Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
-        <header className="h-20 bg-slate-900/60 backdrop-blur-md border-b border-slate-800/80 px-8 flex items-center justify-between sticky top-0 z-40">
+        <header className="hidden md:flex h-20 bg-slate-900/60 backdrop-blur-md border-b border-slate-800/80 px-8 items-center justify-between sticky top-0 z-40">
           <h1 className="text-xl font-bold text-slate-100">Control Center</h1>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center font-bold text-sm">
@@ -90,7 +160,7 @@ export const AdminLayout: React.FC = () => {
         </header>
 
         {/* Content Outlet */}
-        <main className="p-8 flex-1 overflow-y-auto">
+        <main className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>
