@@ -1,4 +1,11 @@
-export type NotificationType = 'ORDER_STATUS' | 'PROMOTION' | 'SYSTEM' | string;
+export type NotificationType =
+  | 'ORDER_CREATED'
+  | 'ORDER_STATUS_UPDATED'
+  | 'PAYMENT_SUCCESS'
+  | 'PAYMENT_FAILED'
+  | 'ORDER_CANCELLED'
+  | 'REFUND_PROCESSED'
+  | string;
 
 export interface Notification {
   id: number;
@@ -9,5 +16,5 @@ export interface Notification {
 }
 
 export interface UnreadCountResponse {
-  unreadCount: number;
+  count: number;
 }

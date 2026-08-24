@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCartStore } from '../store/useCartStore';
 import { MiniCart } from '../components/cart/MiniCart';
+import { NotificationDropdown } from '../components/notification/NotificationDropdown';
 
 export const MainLayout: React.FC = () => {
   const navigate = useNavigate();
@@ -23,10 +24,11 @@ export const MainLayout: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    // Reset cart state and query cache so no stale data is shown for the next user
+    // Reset cart & notification state and query cache so no stale data is shown for the next user
     useCartStore.getState().clearCart();
     useCartStore.getState().closeMiniCart();
     queryClient.removeQueries({ queryKey: ['cart'] });
+    queryClient.removeQueries({ queryKey: ['notifications'] });
     setIsDropdownOpen(false);
     toast.success('Successfully logged out.');
     navigate('/');
@@ -84,6 +86,8 @@ export const MainLayout: React.FC = () => {
                 </span>
               )}
             </button>
+
+            {isAuthenticated && <NotificationDropdown />}
 
             {isAuthenticated ? (
               <div className="relative">

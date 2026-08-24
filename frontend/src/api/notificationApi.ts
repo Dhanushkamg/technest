@@ -7,14 +7,17 @@ export const notificationApi = {
     return response.data;
   },
 
-  markAsRead: async (notificationId: number): Promise<Notification> => {
-    const response = await axiosClient.put<Notification>(`/notifications/${notificationId}/read`);
-    return response.data;
-  },
-
   getUnreadCount: async (): Promise<UnreadCountResponse> => {
     const response = await axiosClient.get<UnreadCountResponse>('/notifications/unread-count');
     return response.data;
+  },
+
+  markAsRead: async (notificationId: number): Promise<void> => {
+    await axiosClient.put(`/notifications/${notificationId}/read`);
+  },
+
+  markAllAsRead: async (): Promise<void> => {
+    await axiosClient.put('/notifications/read-all');
   },
 };
 
