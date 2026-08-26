@@ -1,5 +1,5 @@
 import axiosClient from './axiosClient';
-import type { CreatePaymentRequest, Payment, PaymentConfirmRequest } from '../types';
+import type { CreatePaymentRequest, PayHereCheckoutParams, Payment, PaymentConfirmRequest } from '../types';
 
 export const paymentApi = {
   // Direct simulated payment (creates & confirms in one call)
@@ -17,6 +17,12 @@ export const paymentApi = {
   // 2-step flow: confirm payment by ID
   confirmPayment: async (paymentId: number, data: PaymentConfirmRequest): Promise<Payment> => {
     const response = await axiosClient.post<Payment>(`/payments/${paymentId}/confirm`, data);
+    return response.data;
+  },
+
+  // Request PayHere Checkout Configuration for an Order
+  createPayHereCheckout: async (orderId: number): Promise<PayHereCheckoutParams> => {
+    const response = await axiosClient.post<PayHereCheckoutParams>('/payments/payhere/create', { orderId });
     return response.data;
   },
 

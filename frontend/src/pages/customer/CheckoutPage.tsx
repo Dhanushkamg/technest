@@ -15,6 +15,7 @@ import {
   Loader2,
   Tag,
   PackageOpen,
+  Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { authApi } from '../../api/authApi';
@@ -33,7 +34,7 @@ export const CheckoutPage: React.FC = () => {
 
   // Form State
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'CREDIT_CARD' | 'CASH_ON_DELIVERY' | 'PAYPAL'>('CREDIT_CARD');
+  const [paymentMethod, setPaymentMethod] = useState<'PAYHERE' | 'CREDIT_CARD' | 'CASH_ON_DELIVERY' | 'PAYPAL'>('PAYHERE');
   const [couponCodeInput, setCouponCodeInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -68,6 +69,28 @@ export const CheckoutPage: React.FC = () => {
       setSelectedAddressId(defaultAddr.id);
     }
   }, [addresses, selectedAddressId]);
+
+  // Load PayHere JavaScript SDK dynamically
+  const loadPayHereSdk = (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if (window.payhere) {
+        resolve();
+        return;
+      }
+      const existingScript = document.getElementById('payhere-sdk');
+      if (existingScript) {
+        existingScript.addEventListener('load', () => resolve());
+        return;
+      }
+      const script = document.createElement('script');
+      script.id = 'payhere-sdk';
+      script.src = 'https://www.payhere.lk/lib/payhere.js';
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load PayHere SDK'));
+      document.body.appendChild(script);
+    });
+  };
 
   // Add Address Mutation
   const addAddressMutation = useMutation({
@@ -125,33 +148,91 @@ export const CheckoutPage: React.FC = () => {
     setIsPlacingOrder(true);
 
     try {
-      // 1. Create Backend Order
+      if (paymentMethod === 'PAYHERE') {
+        // 1. Create Backend Order
+        const order = await orderApi.createOrder({
+          addressId: selectedAddressId,
+          couponCode: appliedCoupon || undefined,
+        });
+
+        // 2. Request PayHere Checkout Configuration from Backend
+        const payHereParams = await paymentApi.createPayHereCheckout(order.id);
+
+        // 3. Load PayHere JS SDK
+        await loadPayHereSdk();
+
+        if (!window.payhere) {
+          throw new Error('PayHere payment gateway is currently unavailable.');
+        }
+
+        // 4. Setup PayHere callbacks
+        window.payhere.onCompleted = (_orderId: string) => {
+          toast.success('PayHere checkout process completed!');
+          queryClient.invalidateQueries({ queryKey: ['cart'] });
+          queryClient.invalidateQueries({ queryKey: ['orders'] });
+          updateCartCount(0);
+          navigate(`/order-success/${order.id}`);
+        };
+
+        window.payhere.onDismissed = () => {
+          toast.warning('PayHere checkout popup was closed.');
+          setIsPlacingOrder(false);
+          navigate(`/orders/${order.id}`);
+        };
+
+        window.payhere.onError = (error: string) => {
+          toast.error(`PayHere Payment Error: ${error}`);
+          setIsPlacingOrder(false);
+        };
+
+        // 5. Start PayHere Popup Checkout
+        window.payhere.startPayment({
+          sandbox: true,
+          merchant_id: payHereParams.merchantId,
+          return_url: payHereParams.returnUrl,
+          cancel_url: payHereParams.cancelUrl,
+          notify_url: payHereParams.notifyUrl,
+          order_id: payHereParams.orderId,
+          items: payHereParams.items,
+          amount: payHereParams.amount,
+          currency: payHereParams.currency,
+          hash: payHereParams.hash,
+          first_name: payHereParams.firstName,
+          last_name: payHereParams.lastName,
+          email: payHereParams.email,
+          phone: payHereParams.phone,
+          address: payHereParams.address,
+          city: payHereParams.city,
+          country: payHereParams.country,
+        });
+        return;
+      }
+
+      // Default COD / Simulated Payment Flow
       const order = await orderApi.createOrder({
         addressId: selectedAddressId,
         couponCode: appliedCoupon || undefined,
       });
 
-      // 2. Create & Confirm Payment on Backend
       await paymentApi.createPayment({
         orderId: order.id,
         amount: order.totalAmount,
         paymentMethod: paymentMethod,
       });
 
-      // 3. Invalidate Cart and Orders
       queryClient.invalidateQueries({ queryKey: ['cart'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       updateCartCount(0);
 
       toast.success('Order placed successfully!');
-
-      // 4. Navigate to Order Confirmation
       navigate(`/order-success/${order.id}`);
     } catch (error: any) {
-      const errorMsg = error.response?.data?.message || 'Failed to place order. Please try again.';
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to place order. Please try again.';
       toast.error(errorMsg);
     } finally {
-      setIsPlacingOrder(false);
+      if (paymentMethod !== 'PAYHERE') {
+        setIsPlacingOrder(false);
+      }
     }
   };
 
@@ -315,23 +396,30 @@ export const CheckoutPage: React.FC = () => {
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Credit / Debit Card */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* PayHere SANDBOX Payment Gateway */}
               <div
-                onClick={() => setPaymentMethod('CREDIT_CARD')}
+                onClick={() => setPaymentMethod('PAYHERE')}
                 className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
-                  paymentMethod === 'CREDIT_CARD'
-                    ? 'bg-cyan-950/30 border-cyan-500/80 shadow-lg shadow-cyan-500/10'
+                  paymentMethod === 'PAYHERE'
+                    ? 'bg-gradient-to-br from-cyan-950/50 to-blue-950/40 border-cyan-500 shadow-lg shadow-cyan-500/15'
                     : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
                 }`}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <CreditCard className="w-6 h-6 text-cyan-400" />
-                  {paymentMethod === 'CREDIT_CARD' && <CheckCircle2 className="w-4 h-4 text-cyan-400" />}
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-6 h-6 text-amber-400" />
+                    <span className="text-xs font-bold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                      Sandbox
+                    </span>
+                  </div>
+                  {paymentMethod === 'PAYHERE' && <CheckCircle2 className="w-4 h-4 text-cyan-400" />}
                 </div>
                 <div>
-                  <span className="font-bold text-white text-sm block">Credit / Debit Card</span>
-                  <span className="text-[11px] text-slate-400 block mt-0.5">Instant confirmation</span>
+                  <span className="font-bold text-white text-sm block">PayHere Payment Gateway</span>
+                  <span className="text-[11px] text-slate-400 block mt-0.5">
+                    Cards, EzCash, MSpace, Internet Banking
+                  </span>
                 </div>
               </div>
 
@@ -354,7 +442,26 @@ export const CheckoutPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* PayPal */}
+              {/* Simulated Credit / Debit Card */}
+              <div
+                onClick={() => setPaymentMethod('CREDIT_CARD')}
+                className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
+                  paymentMethod === 'CREDIT_CARD'
+                    ? 'bg-cyan-950/30 border-cyan-500/80 shadow-lg shadow-cyan-500/10'
+                    : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <CreditCard className="w-6 h-6 text-cyan-400" />
+                  {paymentMethod === 'CREDIT_CARD' && <CheckCircle2 className="w-4 h-4 text-cyan-400" />}
+                </div>
+                <div>
+                  <span className="font-bold text-white text-sm block">Direct Test Card</span>
+                  <span className="text-[11px] text-slate-400 block mt-0.5">Simulated instant approval</span>
+                </div>
+              </div>
+
+              {/* PayPal Express */}
               <div
                 onClick={() => setPaymentMethod('PAYPAL')}
                 className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
@@ -369,7 +476,7 @@ export const CheckoutPage: React.FC = () => {
                 </div>
                 <div>
                   <span className="font-bold text-white text-sm block">PayPal Express</span>
-                  <span className="text-[11px] text-slate-400 block mt-0.5">Fast secure checkout</span>
+                  <span className="text-[11px] text-slate-400 block mt-0.5">Simulated PayPal checkout</span>
                 </div>
               </div>
             </div>
@@ -447,11 +554,15 @@ export const CheckoutPage: React.FC = () => {
             <button
               onClick={handlePlaceOrder}
               disabled={isPlacingOrder || !selectedAddressId}
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95"
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 cursor-pointer"
             >
               {isPlacingOrder ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" /> Processing Order...
+                </>
+              ) : paymentMethod === 'PAYHERE' ? (
+                <>
+                  Pay with PayHere Gateway <ArrowRight className="w-5 h-5" />
                 </>
               ) : (
                 <>
@@ -462,7 +573,7 @@ export const CheckoutPage: React.FC = () => {
 
             <div className="flex items-center justify-center gap-2 text-xs text-slate-500 pt-2">
               <ShieldCheck className="w-4 h-4 text-cyan-400" />
-              <span>Encrypted 256-bit SSL Checkout</span>
+              <span>Encrypted 256-bit PayHere SSL Checkout</span>
             </div>
           </div>
         </div>
