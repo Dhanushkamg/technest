@@ -34,6 +34,7 @@ class AdminProductServiceTest {
     @Mock private CategoryRepository categoryRepository;
     @Mock private UserRepository     userRepository;
     @Mock private InventoryService   inventoryService;
+    @Mock private com.technest.backend.repository.ProductImageRepository productImageRepository;
 
     @InjectMocks
     private AdminProductService adminProductService;
