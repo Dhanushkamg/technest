@@ -33,6 +33,9 @@ class ProductSearchServiceTest {
     @Mock
     private ProductRepository productRepository;
 
+    @Mock
+    private com.technest.backend.repository.ProductImageRepository productImageRepository;
+
     @InjectMocks
     private ProductSearchService productSearchService;
 
