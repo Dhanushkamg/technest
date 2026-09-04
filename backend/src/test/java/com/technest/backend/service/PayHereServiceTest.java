@@ -49,6 +49,7 @@ class PayHereServiceTest {
     @Mock private PaymentRepository paymentRepository;
     @Mock private UserRepository userRepository;
     @Mock private NotificationService notificationService;
+    @Mock private EmailService emailService;
 
     @InjectMocks
     private PayHereService payHereService;
