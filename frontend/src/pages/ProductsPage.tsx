@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Package, RotateCcw, AlertTriangle, Cpu } from 'lucide-react';
+import { Package, RotateCcw, Cpu } from 'lucide-react';
 import type { ProductQueryParams } from '../types';
 import { productApi } from '../api/productApi';
 import { categoryApi } from '../api/categoryApi';
@@ -9,6 +9,8 @@ import ProductFilters from '../components/product/ProductFilters';
 import ProductGrid from '../components/product/ProductGrid';
 import ProductSkeleton from '../components/product/ProductSkeleton';
 import Pagination from '../components/common/Pagination';
+import { ErrorState } from '../components/ui/ErrorState';
+import { EmptyState } from '../components/ui/EmptyState';
 
 export const ProductsPage: React.FC = () => {
   // Filter state
@@ -81,22 +83,22 @@ export const ProductsPage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Header Banner */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-800/80 pb-6">
+      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 pb-6">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/30 text-brand-700 dark:text-brand-400 text-xs font-semibold uppercase tracking-wider mb-3">
             <Cpu className="w-3.5 h-3.5" /> High Performance Hardware
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-            Product <span className="bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">Catalog</span>
+          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+            Product <span className="bg-gradient-to-r from-brand-500 to-indigo-500 bg-clip-text text-transparent">Catalog</span>
           </h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
             Browse our curated selection of flagship electronics, gadgets, and computing systems.
           </p>
         </div>
 
         {totalElements > 0 && !isLoading && (
-          <div className="text-sm text-slate-400 font-medium bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800 self-start md:self-auto">
-            Showing <span className="text-cyan-400 font-bold">{totalElements}</span> items
+          <div className="text-sm text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 self-start md:self-auto">
+            Showing <span className="text-brand-600 dark:text-brand-400 font-bold">{totalElements}</span> items
           </div>
         )}
       </div>
@@ -116,40 +118,25 @@ export const ProductsPage: React.FC = () => {
 
       {/* Error State */}
       {isError && !isLoading && (
-        <div className="bg-slate-900/80 border border-rose-800/50 rounded-2xl p-12 text-center my-10 max-w-lg mx-auto backdrop-blur-xl">
-          <div className="w-16 h-16 rounded-2xl bg-rose-950/60 border border-rose-800/50 flex items-center justify-center mx-auto mb-4 text-rose-400">
-            <AlertTriangle className="w-8 h-8" />
-          </div>
-          <h3 className="text-xl font-bold text-white mb-2">Failed to Load Products</h3>
-          <p className="text-slate-400 text-sm mb-6">
-            {(error as Error)?.message || 'Unable to connect to the Spring Boot ecommerce API server.'}
-          </p>
-          <button
-            onClick={() => refetch()}
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white font-semibold text-sm shadow-lg shadow-rose-500/20 transition-all"
-          >
-            Retry Connection
-          </button>
-        </div>
+        <ErrorState
+          title="Failed to Load Products"
+          description={(error as Error)?.message || 'Unable to connect to the TechNest API server.'}
+          onRetry={() => refetch()}
+        />
       )}
 
       {/* Empty State */}
       {!isLoading && !isError && products.length === 0 && (
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-16 text-center my-8 max-w-md mx-auto backdrop-blur-xl">
-          <div className="w-16 h-16 rounded-2xl bg-slate-800/80 flex items-center justify-center mx-auto mb-4 text-cyan-400">
-            <Package className="w-8 h-8" />
-          </div>
-          <h3 className="text-xl font-bold text-white mb-2">No Products Found</h3>
-          <p className="text-slate-400 text-sm mb-6">
-            We couldn't find any products matching your current filters or search query.
-          </p>
-          <button
-            onClick={handleResetFilters}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-sm shadow-lg shadow-cyan-500/20 transition-all"
-          >
-            <RotateCcw className="w-4 h-4" /> Reset All Filters
-          </button>
-        </div>
+        <EmptyState
+          icon={Package}
+          title="No Products Found"
+          description="We couldn't find any products matching your current filters or search query."
+          action={{
+            label: 'Reset All Filters',
+            onClick: handleResetFilters,
+            icon: <RotateCcw className="w-4 h-4" />,
+          }}
+        />
       )}
 
       {/* Product Grid */}

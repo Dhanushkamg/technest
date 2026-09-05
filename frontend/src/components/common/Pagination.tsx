@@ -50,12 +50,12 @@ export const Pagination: React.FC<PaginationProps> = ({
   const endItem = Math.min((page + 1) * pageSize, totalElements);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-slate-800/80">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
       {/* Item counts info */}
-      <div className="text-sm text-slate-400 font-medium">
-        Showing <span className="text-slate-200 font-semibold">{startItem}</span> to{' '}
-        <span className="text-slate-200 font-semibold">{endItem}</span> of{' '}
-        <span className="text-slate-200 font-semibold">{totalElements}</span> products
+      <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+        Showing <span className="text-slate-900 dark:text-slate-200 font-semibold">{startItem}</span> to{' '}
+        <span className="text-slate-900 dark:text-slate-200 font-semibold">{endItem}</span> of{' '}
+        <span className="text-slate-900 dark:text-slate-200 font-semibold">{totalElements}</span> items
       </div>
 
       {/* Pagination Controls */}
@@ -64,8 +64,8 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={first}
-          className="p-2.5 rounded-xl border border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-          title="Previous Page"
+          aria-label="Previous Page"
+          className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -74,7 +74,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         {getPageNumbers().map((p, idx) => {
           if (typeof p === 'string') {
             return (
-              <span key={`ellipsis-${idx}`} className="px-2 py-1 text-slate-600 text-sm font-semibold">
+              <span key={`ellipsis-${idx}`} className="px-2 py-1 text-slate-400 dark:text-slate-600 text-sm font-semibold">
                 ...
               </span>
             );
@@ -85,10 +85,11 @@ export const Pagination: React.FC<PaginationProps> = ({
             <button
               key={p}
               onClick={() => onPageChange(p)}
-              className={`w-9 h-9 rounded-xl font-semibold text-sm transition-all ${
+              aria-current={isSelected ? 'page' : undefined}
+              className={`w-9 h-9 rounded-xl font-semibold text-sm transition-all shadow-sm ${
                 isSelected
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25 border border-cyan-400/30'
-                  : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-sky-500/20 border border-sky-400/30'
+                  : 'bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
               {p + 1}
@@ -100,8 +101,8 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={last}
-          className="p-2.5 rounded-xl border border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-          title="Next Page"
+          aria-label="Next Page"
+          className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
         >
           <ChevronRight className="w-4 h-4" />
         </button>

@@ -14,7 +14,6 @@ import {
   RotateCcw,
   Plus,
   Minus,
-  AlertTriangle,
   Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -26,6 +25,8 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useCartStore } from '../store/useCartStore';
 import { useWishlist } from '../hooks/useWishlist';
 import ProductReviews from '../components/product/ProductReviews';
+import { ErrorState } from '../components/ui/ErrorState';
+import { Button } from '../components/ui/Button';
 
 export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -114,16 +115,16 @@ export const ProductDetailPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 animate-pulse">
-        <div className="w-32 h-6 bg-slate-800 rounded mb-8" />
+        <div className="w-32 h-6 bg-slate-200 dark:bg-slate-800 rounded mb-8" />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <div className="w-full h-96 bg-slate-800 rounded-2xl" />
+          <div className="w-full h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
           <div className="space-y-6">
-            <div className="w-24 h-4 bg-slate-800 rounded" />
-            <div className="w-3/4 h-8 bg-slate-800 rounded" />
-            <div className="w-32 h-6 bg-slate-800 rounded" />
-            <div className="w-48 h-10 bg-slate-800 rounded" />
-            <div className="w-full h-24 bg-slate-800 rounded" />
-            <div className="w-full h-14 bg-slate-800 rounded-xl" />
+            <div className="w-24 h-4 bg-slate-200 dark:bg-slate-800 rounded" />
+            <div className="w-3/4 h-8 bg-slate-200 dark:bg-slate-800 rounded" />
+            <div className="w-32 h-6 bg-slate-200 dark:bg-slate-800 rounded" />
+            <div className="w-48 h-10 bg-slate-200 dark:bg-slate-800 rounded" />
+            <div className="w-full h-24 bg-slate-200 dark:bg-slate-800 rounded" />
+            <div className="w-full h-14 bg-slate-200 dark:bg-slate-800 rounded-xl" />
           </div>
         </div>
       </div>
@@ -133,28 +134,22 @@ export const ProductDetailPage: React.FC = () => {
   // Error State
   if (isError || !product) {
     return (
-      <div className="max-w-md mx-auto px-4 py-20 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-rose-950/60 border border-rose-800/50 flex items-center justify-center mx-auto mb-4 text-rose-400">
-          <AlertTriangle className="w-8 h-8" />
-        </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Product Not Found</h2>
-        <p className="text-slate-400 text-sm mb-6">
-          {(error as Error)?.message || 'The requested product could not be retrieved from the backend server.'}
-        </p>
-        <div className="flex gap-4 justify-center">
-          <button
-            onClick={() => refetch()}
-            className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-sm transition-colors"
-          >
-            Retry
-          </button>
-          <Link
-            to="/products"
-            className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white font-medium text-sm transition-colors"
-          >
-            Back to Products
-          </Link>
-        </div>
+      <div className="max-w-md mx-auto px-4 py-20">
+        <ErrorState
+          title="Product Not Found"
+          description={(error as Error)?.message || 'The requested product could not be retrieved from the backend server.'}
+          onRetry={() => refetch()}
+          action={
+            <div className="flex gap-3">
+              <Button variant="secondary" size="sm" onClick={() => refetch()}>
+                Retry
+              </Button>
+              <Link to="/products">
+                <Button variant="primary" size="sm">Back to Products</Button>
+              </Link>
+            </div>
+          }
+        />
       </div>
     );
   }
@@ -162,20 +157,20 @@ export const ProductDetailPage: React.FC = () => {
   const getStockBadge = () => {
     if (product.stock === 0) {
       return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-950/80 text-rose-400 border border-rose-800/50">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 dark:bg-rose-950/80 text-red-700 dark:text-rose-400 border border-red-200 dark:border-rose-800/50">
           <XCircle className="w-4 h-4" /> Out of Stock
         </span>
       );
     }
     if (product.stock <= 5) {
       return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-950/80 text-amber-400 border border-amber-800/50">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
           <AlertCircle className="w-4 h-4" /> Only {product.stock} left in stock
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800/50">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
         <CheckCircle className="w-4 h-4" /> In Stock ({product.stock} available)
       </span>
     );
@@ -186,7 +181,7 @@ export const ProductDetailPage: React.FC = () => {
       {/* Back to Products Nav */}
       <Link
         to="/products"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-cyan-400 transition-colors mb-8 group"
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors mb-8 group"
       >
         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
         Back to Product Catalog
@@ -195,19 +190,19 @@ export const ProductDetailPage: React.FC = () => {
       {/* Main Detail Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
         {/* Left: Product Image */}
-        <div className="relative rounded-3xl overflow-hidden bg-slate-900 border border-slate-800/80 shadow-2xl p-6 group">
+        <div className="relative rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 shadow-md dark:shadow-2xl p-6 group">
           <img
             src={imageUrl}
             alt={product.name}
             onError={() => setImgError(true)}
-            className="w-full h-96 sm:h-[450px] object-cover rounded-2xl group-hover:scale-102 transition-transform duration-500"
+            className="w-full h-96 sm:h-[450px] object-cover rounded-2xl transition-transform duration-500"
           />
 
           {/* Wishlist Floating Button */}
           <button
             onClick={handleToggleWishlist}
             disabled={isWishlistPending}
-            className="absolute top-9 right-9 p-3 rounded-2xl bg-slate-950/80 backdrop-blur-md text-slate-300 hover:text-rose-400 border border-slate-700/60 shadow-xl transition-all disabled:opacity-50"
+            className="absolute top-9 right-9 p-3 rounded-2xl bg-white/90 dark:bg-slate-950/80 backdrop-blur-md text-slate-500 dark:text-slate-300 hover:text-rose-500 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-700/60 shadow-lg transition-all disabled:opacity-50"
             title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
           >
             {isWishlistPending ? (
@@ -221,31 +216,31 @@ export const ProductDetailPage: React.FC = () => {
         {/* Right: Product Info */}
         <div className="space-y-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/30 text-brand-700 dark:text-brand-400 text-xs font-semibold uppercase tracking-wider mb-3">
               {product.categoryName}
             </div>
-            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-3">
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-3">
               {product.name}
             </h1>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
               <RatingStars rating={product.averageRating} reviewCount={product.reviewCount} size="md" />
-              <span className="text-slate-600">|</span>
+              <span className="text-slate-300 dark:text-slate-600">|</span>
               {getStockBadge()}
             </div>
           </div>
 
           {/* Price */}
-          <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-baseline gap-3">
-            <span className="text-4xl font-black text-white bg-gradient-to-r from-white via-slate-100 to-cyan-400 bg-clip-text">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex items-baseline gap-3">
+            <span className="text-4xl font-black text-slate-900 dark:text-white">
               ${Number(product.price).toFixed(2)}
             </span>
-            <span className="text-xs text-slate-400 font-medium">Included taxes & warranty</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Included taxes & warranty</span>
           </div>
 
           {/* Description */}
           <div className="space-y-2">
-            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">Overview</h3>
-            <p className="text-slate-300 text-sm leading-relaxed">
+            <h3 className="text-sm font-bold text-slate-500 dark:text-slate-300 uppercase tracking-wider">Overview</h3>
+            <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
               {product.description ||
                 'Engineered with cutting-edge materials and precision specs to deliver unmatched tech performance for power users and enthusiasts.'}
             </p>
@@ -253,20 +248,22 @@ export const ProductDetailPage: React.FC = () => {
 
           {/* Quantity Selector */}
           <div className="flex items-center gap-4 pt-2">
-            <span className="text-sm font-semibold text-slate-300">Quantity:</span>
-            <div className="flex items-center rounded-xl bg-slate-900 border border-slate-800 p-1">
+            <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Quantity:</span>
+            <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1">
               <button
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                 disabled={quantity <= 1}
-                className="p-2 rounded-lg hover:bg-slate-800 text-slate-300 disabled:opacity-30 transition-colors"
+                aria-label="Decrease quantity"
+                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-30 transition-colors"
               >
                 <Minus className="w-4 h-4" />
               </button>
-              <span className="w-12 text-center font-bold text-white text-sm">{quantity}</span>
+              <span className="w-12 text-center font-bold text-slate-900 dark:text-white text-sm">{quantity}</span>
               <button
                 onClick={() => setQuantity((q) => Math.min(product.stock || 99, q + 1))}
                 disabled={quantity >= (product.stock || 99)}
-                className="p-2 rounded-lg hover:bg-slate-800 text-slate-300 disabled:opacity-30 transition-colors"
+                aria-label="Increase quantity"
+                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-30 transition-colors"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -275,39 +272,47 @@ export const ProductDetailPage: React.FC = () => {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
-            <button
+            <Button
+              variant="outline"
+              size="lg"
+              className="flex-1"
               onClick={handleAddToCart}
-              disabled={product.stock === 0 || isAddingToCart}
-              className="flex-1 inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm border border-slate-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              disabled={product.stock === 0}
+              isLoading={isAddingToCart}
+              leftIcon={<ShoppingBag className="w-5 h-5" />}
             >
-              <ShoppingBag className="w-5 h-5 text-cyan-400" /> Add to Cart
-            </button>
+              Add to Cart
+            </Button>
 
-            <button
+            <Button
+              variant="primary"
+              size="lg"
+              className="flex-1"
               onClick={handleBuyNow}
-              disabled={product.stock === 0 || isAddingToCart}
-              className="flex-1 inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm shadow-xl shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:-translate-y-0.5"
+              disabled={product.stock === 0}
+              isLoading={isAddingToCart}
+              leftIcon={<Zap className="w-5 h-5" />}
             >
-              <Zap className="w-5 h-5" /> Buy Now
-            </button>
+              Buy Now
+            </Button>
           </div>
 
           {/* Value Badges */}
-          <div className="grid grid-cols-3 gap-3 pt-6 border-t border-slate-800/80 text-center">
-            <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800/60">
-              <Truck className="w-5 h-5 text-cyan-400 mx-auto mb-1" />
-              <span className="text-xs font-semibold text-slate-300 block">Fast Delivery</span>
-              <span className="text-[10px] text-slate-500">Ships within 24h</span>
+          <div className="grid grid-cols-3 gap-3 pt-6 border-t border-slate-200 dark:border-slate-800/80 text-center">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60">
+              <Truck className="w-5 h-5 text-brand-500 dark:text-brand-400 mx-auto mb-1" />
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">Fast Delivery</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500">Ships within 24h</span>
             </div>
-            <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800/60">
-              <ShieldCheck className="w-5 h-5 text-cyan-400 mx-auto mb-1" />
-              <span className="text-xs font-semibold text-slate-300 block">2-Year Warranty</span>
-              <span className="text-[10px] text-slate-500">Full coverage</span>
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60">
+              <ShieldCheck className="w-5 h-5 text-brand-500 dark:text-brand-400 mx-auto mb-1" />
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">2-Year Warranty</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500">Full coverage</span>
             </div>
-            <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800/60">
-              <RotateCcw className="w-5 h-5 text-cyan-400 mx-auto mb-1" />
-              <span className="text-xs font-semibold text-slate-300 block">30-Day Returns</span>
-              <span className="text-[10px] text-slate-500">Hassle free</span>
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60">
+              <RotateCcw className="w-5 h-5 text-brand-500 dark:text-brand-400 mx-auto mb-1" />
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">30-Day Returns</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500">Hassle free</span>
             </div>
           </div>
         </div>

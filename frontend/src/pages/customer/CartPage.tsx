@@ -10,13 +10,16 @@ import {
   ArrowLeft,
   ArrowRight,
   Loader2,
-  AlertTriangle,
-  RefreshCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCart } from '../../hooks/useCart';
 import { getProductImage } from '../../utils/productImages';
 import type { CartItem } from '../../types';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { ErrorState } from '../../components/ui/ErrorState';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Button } from '../../components/ui/Button';
+import { IconButton } from '../../components/ui/IconButton';
 
 // ─── Cart Item Row ────────────────────────────────────────────────────────────
 const CartItemRow: React.FC<{
@@ -57,10 +60,10 @@ const CartItemRow: React.FC<{
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -40 }}
       transition={{ duration: 0.25 }}
-      className="flex flex-col sm:flex-row gap-4 p-4 bg-slate-900/60 border border-slate-800/80 rounded-2xl hover:border-slate-700/80 transition-all backdrop-blur-xl"
+      className="flex flex-col sm:flex-row gap-4 p-4 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-2xl hover:border-slate-300 dark:hover:border-slate-700/80 transition-all shadow-sm"
     >
       {/* Product Image */}
-      <div className="w-full sm:w-28 h-28 flex-shrink-0 rounded-xl overflow-hidden bg-slate-800 border border-slate-700/40">
+      <div className="w-full sm:w-28 h-28 flex-shrink-0 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/40">
         <img
           src={imageUrl}
           alt={item.productName}
@@ -72,24 +75,25 @@ const CartItemRow: React.FC<{
       {/* Item Content */}
       <div className="flex-1 flex flex-col justify-between gap-3">
         <div>
-          <p className="text-base font-bold text-slate-100">{item.productName}</p>
-          <p className="text-xs text-cyan-400 mt-0.5">Unit price: ${Number(item.price).toFixed(2)}</p>
+          <p className="text-base font-bold text-slate-900 dark:text-slate-100">{item.productName}</p>
+          <p className="text-xs text-brand-600 dark:text-brand-400 mt-0.5">Unit price: ${Number(item.price).toFixed(2)}</p>
         </div>
 
         <div className="flex items-center justify-between gap-3 flex-wrap">
           {/* Quantity Controls */}
-          <div className="flex items-center gap-1 bg-slate-800 border border-slate-700/60 rounded-xl p-1">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-xl p-1">
             <button
               onClick={() => handleQtyChange(localQty - 1)}
               disabled={isDisabled || localQty <= 1}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              aria-label="Decrease quantity"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <Minus className="w-4 h-4" />
             </button>
 
-            <span className="w-10 text-center font-bold text-white text-sm">
+            <span className="w-10 text-center font-bold text-slate-900 dark:text-white text-sm">
               {isUpdating ? (
-                <Loader2 className="w-4 h-4 animate-spin mx-auto text-cyan-400" />
+                <Loader2 className="w-4 h-4 animate-spin mx-auto text-brand-500" />
               ) : (
                 localQty
               )}
@@ -98,7 +102,8 @@ const CartItemRow: React.FC<{
             <button
               onClick={() => handleQtyChange(localQty + 1)}
               disabled={isDisabled}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              aria-label="Increase quantity"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -107,21 +112,17 @@ const CartItemRow: React.FC<{
           {/* Subtotal + Remove */}
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <span className="text-xs text-slate-500 block">Subtotal</span>
-              <span className="text-lg font-black text-white">${subtotal}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-500 block">Subtotal</span>
+              <span className="text-lg font-black text-slate-900 dark:text-white">${subtotal}</span>
             </div>
-            <button
+            <IconButton
+              icon={isRemoving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              variant="ghost"
               onClick={handleRemove}
               disabled={isDisabled}
-              className="p-2.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 disabled:opacity-30 disabled:cursor-not-allowed border border-transparent hover:border-rose-800/40 transition-all"
-              title="Remove item"
-            >
-              {isRemoving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4" />
-              )}
-            </button>
+              aria-label="Remove item"
+              className="text-slate-400 hover:text-red-600 dark:hover:text-rose-400 hover:bg-red-50 dark:hover:bg-rose-950/30 border border-transparent hover:border-red-200 dark:hover:border-rose-800/40"
+            />
           </div>
         </div>
       </div>
@@ -135,75 +136,20 @@ const CartSkeleton: React.FC = () => (
     {[1, 2, 3].map((i) => (
       <div
         key={i}
-        className="flex gap-4 p-4 bg-slate-900/60 border border-slate-800/80 rounded-2xl animate-pulse"
+        className="flex gap-4 p-4 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-2xl animate-pulse"
       >
-        <div className="w-28 h-28 rounded-xl bg-slate-800 flex-shrink-0" />
+        <div className="w-28 h-28 rounded-xl bg-slate-200 dark:bg-slate-800 flex-shrink-0" />
         <div className="flex-1 space-y-3 pt-1">
-          <div className="h-4 bg-slate-800 rounded w-2/3" />
-          <div className="h-3 bg-slate-800 rounded w-1/4" />
+          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-2/3" />
+          <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-1/4" />
           <div className="flex justify-between items-center mt-auto">
-            <div className="h-8 bg-slate-800 rounded-xl w-28" />
-            <div className="h-8 bg-slate-800 rounded w-20" />
+            <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-xl w-28" />
+            <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded w-20" />
           </div>
         </div>
       </div>
     ))}
   </div>
-);
-
-// ─── Clear Cart Confirmation Dialog ──────────────────────────────────────────
-const ClearCartDialog: React.FC<{
-  isOpen: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-  isClearing: boolean;
-}> = ({ isOpen, onConfirm, onCancel, isClearing }) => (
-  <AnimatePresence>
-    {isOpen && (
-      <>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
-          onClick={onCancel}
-        />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        >
-          <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl">
-            <div className="w-12 h-12 rounded-2xl bg-rose-950/60 border border-rose-800/50 flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="w-6 h-6 text-rose-400" />
-            </div>
-            <h3 className="text-lg font-bold text-white text-center mb-2">Clear Cart?</h3>
-            <p className="text-sm text-slate-400 text-center mb-6">
-              All items will be removed from your cart. This cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={onCancel}
-                disabled={isClearing}
-                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-sm transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={onConfirm}
-                disabled={isClearing}
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-              >
-                {isClearing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {isClearing ? 'Clearing...' : 'Clear Cart'}
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      </>
-    )}
-  </AnimatePresence>
 );
 
 // ─── Full Cart Page ───────────────────────────────────────────────────────────
@@ -242,18 +188,12 @@ export const CartPage: React.FC = () => {
   // ── Error State
   if (isError) {
     return (
-      <div className="max-w-md mx-auto px-4 py-20 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-rose-950/60 border border-rose-800/50 flex items-center justify-center mx-auto mb-4">
-          <AlertTriangle className="w-8 h-8 text-rose-400" />
-        </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Unable to Load Cart</h2>
-        <p className="text-slate-400 text-sm mb-6">Failed to fetch your cart from the server.</p>
-        <button
-          onClick={() => refetch()}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-sm transition-colors"
-        >
-          <RefreshCcw className="w-4 h-4" /> Retry
-        </button>
+      <div className="max-w-md mx-auto px-4 py-20">
+        <ErrorState
+          title="Unable to Load Cart"
+          description="Failed to fetch your cart from the server."
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }
@@ -265,15 +205,15 @@ export const CartPage: React.FC = () => {
         <div>
           <Link
             to="/products"
-            className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-cyan-400 transition-colors mb-3 group"
+            className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors mb-3 group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             Continue Shopping
           </Link>
-          <h1 className="text-3xl font-black text-white">
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white">
             Shopping Cart
             {!isLoading && totalItems > 0 && (
-              <span className="ml-3 text-lg font-semibold text-slate-400">
+              <span className="ml-3 text-lg font-semibold text-slate-500 dark:text-slate-400">
                 ({totalItems} {totalItems === 1 ? 'item' : 'items'})
               </span>
             )}
@@ -281,39 +221,31 @@ export const CartPage: React.FC = () => {
         </div>
 
         {items.length > 0 && (
-          <button
+          <Button
+            variant="danger"
+            size="sm"
             onClick={() => setShowClearDialog(true)}
             disabled={isClearingCart}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-rose-400 border border-rose-800/40 hover:bg-rose-950/30 text-sm font-medium transition-colors disabled:opacity-50"
+            leftIcon={<Trash2 className="w-4 h-4" />}
           >
-            <Trash2 className="w-4 h-4" /> Clear Cart
-          </button>
+            Clear Cart
+          </Button>
         )}
       </div>
 
       {isLoading ? (
         <CartSkeleton />
       ) : items.length === 0 ? (
-        // ── Empty State
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center justify-center py-24 text-center"
-        >
-          <div className="w-24 h-24 rounded-3xl bg-slate-800/80 border border-slate-700 flex items-center justify-center mb-6">
-            <PackageOpen className="w-11 h-11 text-slate-500" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-3">Your cart is empty</h2>
-          <p className="text-slate-400 text-sm max-w-sm mb-8">
-            Looks like you haven't added anything yet. Browse our products and find something you love.
-          </p>
-          <Link
-            to="/products"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm transition-all shadow-lg shadow-cyan-500/25"
-          >
-            <ShoppingBag className="w-4 h-4" /> Browse Products
-          </Link>
-        </motion.div>
+        <EmptyState
+          icon={PackageOpen}
+          title="Your cart is empty"
+          description="Looks like you haven't added anything yet. Browse our products and find something you love."
+          action={{
+            label: 'Browse Products',
+            onClick: () => navigate('/products'),
+            icon: <ShoppingBag className="w-4 h-4" />,
+          }}
+        />
       ) : (
         // ── Cart Layout
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -338,36 +270,39 @@ export const CartPage: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              className="sticky top-28 bg-slate-900/70 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-xl"
+              className="sticky top-24 bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 shadow-sm dark:shadow-none"
             >
-              <h2 className="text-lg font-bold text-white mb-5 pb-4 border-b border-slate-800">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-5 pb-4 border-b border-slate-200 dark:border-slate-800">
                 Order Summary
               </h2>
 
               <div className="space-y-3 mb-5">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Items ({totalItems})</span>
-                  <span className="text-slate-200 font-medium">${subtotal.toFixed(2)}</span>
+                  <span className="text-slate-500 dark:text-slate-400">Items ({totalItems})</span>
+                  <span className="text-slate-700 dark:text-slate-200 font-medium">${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Shipping</span>
-                  <span className="text-emerald-400 font-medium text-xs">Calculated at checkout</span>
+                  <span className="text-slate-500 dark:text-slate-400">Shipping</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium text-xs">Calculated at checkout</span>
                 </div>
               </div>
 
-              <div className="flex justify-between items-center py-4 border-t border-slate-800 mb-6">
-                <span className="text-white font-bold text-base">Subtotal</span>
-                <span className="text-2xl font-black text-white">${subtotal.toFixed(2)}</span>
+              <div className="flex justify-between items-center py-4 border-t border-slate-200 dark:border-slate-800 mb-6">
+                <span className="text-slate-900 dark:text-white font-bold text-base">Subtotal</span>
+                <span className="text-2xl font-black text-slate-900 dark:text-white">${subtotal.toFixed(2)}</span>
               </div>
 
-              <button
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full"
                 onClick={() => navigate('/checkout')}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-cyan-500/25"
+                rightIcon={<ArrowRight className="w-4 h-4" />}
               >
-                Proceed to Checkout <ArrowRight className="w-4 h-4" />
-              </button>
+                Proceed to Checkout
+              </Button>
 
-              <p className="text-xs text-slate-500 text-center mt-3">
+              <p className="text-xs text-slate-400 dark:text-slate-500 text-center mt-3">
                 Taxes and final shipping calculated at checkout
               </p>
             </motion.div>
@@ -376,11 +311,15 @@ export const CartPage: React.FC = () => {
       )}
 
       {/* Clear Cart Confirmation */}
-      <ClearCartDialog
+      <ConfirmDialog
         isOpen={showClearDialog}
+        onClose={() => setShowClearDialog(false)}
         onConfirm={handleClearCart}
-        onCancel={() => setShowClearDialog(false)}
-        isClearing={isClearingCart}
+        title="Clear Cart?"
+        description="All items will be removed from your cart. This cannot be undone."
+        confirmLabel="Clear Cart"
+        confirmVariant="danger"
+        isLoading={isClearingCart}
       />
     </div>
   );

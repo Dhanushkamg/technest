@@ -15,7 +15,7 @@ export const RatingStars: React.FC<RatingStarsProps> = ({
   size = 'sm',
 }) => {
   const normalizedRating = Math.max(0, Math.min(5, rating || 0));
-  
+
   const iconSizes = {
     sm: 'w-3.5 h-3.5',
     md: 'w-4 h-4',
@@ -43,14 +43,14 @@ export const RatingStars: React.FC<RatingStarsProps> = ({
                   ? 'text-amber-400 fill-amber-400'
                   : isHalf
                   ? 'text-amber-400 fill-amber-400/50'
-                  : 'text-slate-700 fill-slate-800'
+                  : 'text-slate-300 dark:text-slate-700 fill-slate-100 dark:fill-slate-800'
               }`}
             />
           );
         })}
       </div>
       {showCount && (
-        <span className={`font-medium text-slate-400 ${textSizes[size]}`}>
+        <span className={`font-medium text-slate-500 dark:text-slate-400 ${textSizes[size]}`}>
           {normalizedRating.toFixed(1)} {reviewCount !== undefined && `(${reviewCount})`}
         </span>
       )}
