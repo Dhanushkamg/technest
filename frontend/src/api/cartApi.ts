@@ -19,8 +19,8 @@ export const cartApi = {
     return response.data;
   },
 
-  addToCart: async (productId: number, quantity: number): Promise<Cart> => {
-    const response = await axiosClient.post<Cart>('/cart/items', { productId, quantity });
+  addToCart: async (productId: number, quantity: number, variantId?: number): Promise<Cart> => {
+    const response = await axiosClient.post<Cart>('/cart/items', { productId, quantity, variantId });
     return response.data;
   },
 
