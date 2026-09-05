@@ -11,6 +11,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useOrderDetails } from '../../hooks/useOrderDetails';
+import { usePayment } from '../../hooks/usePayment';
 import { OrderStatusBadge } from '../../components/common/OrderStatusBadge';
 import { PaymentStatusBadge } from '../../components/common/PaymentStatusBadge';
 import { getProductImage } from '../../utils/productImages';
@@ -20,6 +21,14 @@ export const OrderSuccessPage: React.FC = () => {
   const numericOrderId = Number(orderId);
 
   const { data: order, isLoading, isError } = useOrderDetails(numericOrderId);
+  const { payments } = usePayment(numericOrderId);
+
+  const latestPayment = payments && payments.length > 0 ? payments[payments.length - 1] : null;
+  const paymentStatus = latestPayment
+    ? latestPayment.status
+    : (order && (order.status === 'CONFIRMED' || order.status === 'SHIPPED' || order.status === 'DELIVERED'))
+    ? 'SUCCESS'
+    : 'PENDING';
 
   if (isLoading) {
     return (
@@ -122,7 +131,7 @@ export const OrderSuccessPage: React.FC = () => {
             <div className="space-y-3 text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-slate-400">Payment Status:</span>
-                <PaymentStatusBadge status="SUCCESS" size="sm" />
+                <PaymentStatusBadge status={paymentStatus} size="sm" />
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-slate-800/80">
                 <span className="text-slate-300 font-semibold">Total Paid:</span>

@@ -54,6 +54,7 @@ public class ProductSearchService {
             Long categoryId,
             BigDecimal minPrice,
             BigDecimal maxPrice,
+            Double minRating,
             int page,
             int size,
             String sortBy,
@@ -63,6 +64,7 @@ public class ProductSearchService {
         validatePage(page);
         validateSize(size);
         validatePriceRange(minPrice, maxPrice);
+        validateMinRating(minRating);
         String validatedSortBy = validateSortField(sortBy);
         Sort.Direction direction = validateSortDirection(sortDirection);
 
@@ -71,7 +73,7 @@ public class ProductSearchService {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         // --- Build Specification ---
-        Specification<Product> spec = buildSpec(search, category, categoryId, minPrice, maxPrice);
+        Specification<Product> spec = buildSpec(search, category, categoryId, minPrice, maxPrice, minRating);
 
         // --- Query ---
         Page<Product> resultPage = productRepository.findAll(spec, pageable);
@@ -96,6 +98,20 @@ public class ProductSearchService {
     @Transactional(readOnly = true)
     public PagedProductResponse search(
             String search,
+            String category,
+            Long categoryId,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            int page,
+            int size,
+            String sortBy,
+            String sortDirection) {
+        return search(search, category, categoryId, minPrice, maxPrice, null, page, size, sortBy, sortDirection);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedProductResponse search(
+            String search,
             Long categoryId,
             BigDecimal minPrice,
             BigDecimal maxPrice,
@@ -103,7 +119,7 @@ public class ProductSearchService {
             int size,
             String sortBy,
             String sortDir) {
-        return search(search, null, categoryId, minPrice, maxPrice, page, size, sortBy, sortDir);
+        return search(search, null, categoryId, minPrice, maxPrice, null, page, size, sortBy, sortDir);
     }
 
     // ---------------------------------------------------------
@@ -115,7 +131,8 @@ public class ProductSearchService {
             String category,
             Long categoryId,
             BigDecimal minPrice,
-            BigDecimal maxPrice) {
+            BigDecimal maxPrice,
+            Double minRating) {
 
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -144,6 +161,10 @@ public class ProductSearchService {
 
             if (maxPrice != null) {
                 predicates.add(cb.lessThanOrEqualTo(root.get("price"), maxPrice));
+            }
+
+            if (minRating != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("averageRating"), minRating));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));
@@ -180,6 +201,12 @@ public class ProductSearchService {
         if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
             throw new BadRequestException(
                     "minPrice (" + minPrice + ") must not be greater than maxPrice (" + maxPrice + ")");
+        }
+    }
+
+    private void validateMinRating(Double minRating) {
+        if (minRating != null && (minRating < 0.0 || minRating > 5.0)) {
+            throw new BadRequestException("minRating must be between 0 and 5. Received: " + minRating);
         }
     }
 

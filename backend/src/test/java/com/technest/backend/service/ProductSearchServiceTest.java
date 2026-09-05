@@ -328,4 +328,33 @@ class ProductSearchServiceTest {
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Invalid sort direction");
     }
+
+    @Test
+    void search_negativeMinRating_throwsBadRequest() {
+        assertThatThrownBy(() -> productSearchService.search(
+                null, null, null, null, null, -1.0, 0, 10, "id", "asc"))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("minRating must be between 0 and 5");
+    }
+
+    @Test
+    void search_minRatingGreaterThanFive_throwsBadRequest() {
+        assertThatThrownBy(() -> productSearchService.search(
+                null, null, null, null, null, 5.5, 0, 10, "id", "asc"))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("minRating must be between 0 and 5");
+    }
+
+    @Test
+    void search_validMinRating_executesQuery() {
+        Page<Product> page = new PageImpl<>(List.of(product1), PageRequest.of(0, 10), 1);
+        when(productRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+
+        PagedProductResponse response = productSearchService.search(
+                null, null, null, null, null, 4.0, 0, 10, "id", "asc");
+
+        assertThat(response).isNotNull();
+        assertThat(response.getContent()).hasSize(1);
+        verify(productRepository).findAll(any(Specification.class), any(Pageable.class));
+    }
 }

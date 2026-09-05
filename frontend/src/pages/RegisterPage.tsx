@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Cpu, Mail, Lock, User, Phone, Eye, EyeOff, UserPlus, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import axios from 'axios';
 import { authApi } from '../api/authApi';
 
 const registerSchema = z
@@ -59,8 +60,10 @@ export const RegisterPage: React.FC = () => {
 
       toast.success('Registration successful! Please log in with your credentials.');
       navigate('/login');
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Registration failed. Email may already be registered.';
+    } catch (err: unknown) {
+      const msg =
+        (axios.isAxiosError(err) ? (err.response?.data as { message?: string } | undefined)?.message : undefined) ||
+        (err instanceof Error ? err.message : 'Registration failed. Email may already be registered.');
       setApiError(msg);
     } finally {
       setIsLoading(false);

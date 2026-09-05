@@ -1,6 +1,7 @@
 package com.technest.backend.controller;
 
 import com.technest.backend.dto.PagedProductResponse;
+import com.technest.backend.dto.ProductResponse;
 import com.technest.backend.entity.Product;
 import com.technest.backend.service.ProductSearchService;
 import com.technest.backend.service.ProductService;
@@ -46,6 +47,7 @@ public class ProductController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) Double minRating,
             @RequestParam(defaultValue = "0")  int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -55,13 +57,13 @@ public class ProductController {
         String effectiveSortDir = sortDirection != null ? sortDirection : (sortDir != null ? sortDir : "asc");
 
         PagedProductResponse result = productSearchService.search(
-                search, category, categoryId, minPrice, maxPrice, page, size, sortBy, effectiveSortDir);
+                search, category, categoryId, minPrice, maxPrice, minRating, page, size, sortBy, effectiveSortDir);
         return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
-        Product product = productService.getProductById(id);
+    public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
+        ProductResponse product = productService.getProductByIdAsDto(id);
         return ResponseEntity.ok(product);
     }
 

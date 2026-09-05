@@ -3,7 +3,7 @@ import type { PagedProductResponse, Product, ProductQueryParams } from '../types
 
 export const productApi = {
   getProducts: async (params?: ProductQueryParams): Promise<PagedProductResponse> => {
-    const cleanParams: Record<string, any> = {};
+    const cleanParams: Record<string, string | number | boolean> = {};
     if (params) {
       if (params.page !== undefined) cleanParams.page = params.page;
       if (params.size !== undefined) cleanParams.size = params.size;

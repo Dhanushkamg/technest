@@ -23,6 +23,7 @@ import { orderApi } from '../../api/orderApi';
 import { paymentApi } from '../../api/paymentApi';
 import { useCart } from '../../hooks/useCart';
 import { useCartStore } from '../../store/useCartStore';
+import axios, { type AxiosError } from 'axios';
 import { getProductImage } from '../../utils/productImages';
 import type { Address } from '../../types';
 
@@ -62,13 +63,8 @@ export const CheckoutPage: React.FC = () => {
     queryFn: authApi.getAddresses,
   });
 
-  // Set initial selected address when addresses load
-  React.useEffect(() => {
-    if (addresses.length > 0 && selectedAddressId === null) {
-      const defaultAddr = addresses.find((a) => a.isDefault) || addresses[0];
-      setSelectedAddressId(defaultAddr.id);
-    }
-  }, [addresses, selectedAddressId]);
+  // Derive active address (selected or default/first)
+  const activeAddressId = selectedAddressId ?? (addresses.find((a) => a.isDefault)?.id ?? addresses[0]?.id ?? null);
 
   // Load PayHere JavaScript SDK dynamically
   const loadPayHereSdk = (): Promise<void> => {
@@ -111,7 +107,7 @@ export const CheckoutPage: React.FC = () => {
         isDefault: false,
       });
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ message?: string }>) => {
       toast.error(err.response?.data?.message || 'Failed to save address.');
     },
   });
@@ -135,7 +131,7 @@ export const CheckoutPage: React.FC = () => {
 
   // Submit Order & Payment Flow
   const handlePlaceOrder = async () => {
-    if (!selectedAddressId) {
+    if (!activeAddressId) {
       toast.error('Please select or add a shipping address.');
       return;
     }
@@ -151,7 +147,7 @@ export const CheckoutPage: React.FC = () => {
       if (paymentMethod === 'PAYHERE') {
         // 1. Create Backend Order
         const order = await orderApi.createOrder({
-          addressId: selectedAddressId,
+          addressId: activeAddressId,
           couponCode: appliedCoupon || undefined,
         });
 
@@ -166,7 +162,7 @@ export const CheckoutPage: React.FC = () => {
         }
 
         // 4. Setup PayHere callbacks
-        window.payhere.onCompleted = (_orderId: string) => {
+        window.payhere.onCompleted = () => {
           toast.success('PayHere checkout process completed!');
           queryClient.invalidateQueries({ queryKey: ['cart'] });
           queryClient.invalidateQueries({ queryKey: ['orders'] });
@@ -210,7 +206,7 @@ export const CheckoutPage: React.FC = () => {
 
       // Default COD / Simulated Payment Flow
       const order = await orderApi.createOrder({
-        addressId: selectedAddressId,
+        addressId: activeAddressId,
         couponCode: appliedCoupon || undefined,
       });
 
@@ -226,8 +222,10 @@ export const CheckoutPage: React.FC = () => {
 
       toast.success('Order placed successfully!');
       navigate(`/order-success/${order.id}`);
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.message || error.message || 'Failed to place order. Please try again.';
+    } catch (error: unknown) {
+      const errorMsg =
+        (axios.isAxiosError(error) ? (error.response?.data as { message?: string } | undefined)?.message : undefined) ||
+        (error instanceof Error ? error.message : 'Failed to place order. Please try again.');
       toast.error(errorMsg);
     } finally {
       if (paymentMethod !== 'PAYHERE') {
@@ -323,7 +321,7 @@ export const CheckoutPage: React.FC = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {addresses.map((addr) => {
-                  const isSelected = selectedAddressId === addr.id;
+                  const isSelected = activeAddressId === addr.id;
                   return (
                     <div
                       key={addr.id}

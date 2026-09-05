@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import type { AxiosError } from 'axios';
 import { notificationApi } from '../api/notificationApi';
 import { useAuthStore } from '../store/useAuthStore';
 
@@ -31,7 +32,7 @@ export const useNotifications = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ message?: string }>) => {
       toast.error(err.response?.data?.message || 'Failed to mark notification as read.');
     },
   });
@@ -43,7 +44,7 @@ export const useNotifications = () => {
       toast.success('All notifications marked as read');
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ message?: string }>) => {
       toast.error(err.response?.data?.message || 'Failed to mark all as read.');
     },
   });

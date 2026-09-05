@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import type { AxiosError } from 'axios';
 import { reviewApi } from '../api/reviewApi';
 import type { ReviewRequest } from '../types';
 
@@ -21,7 +22,7 @@ export const useReviews = (productId: number) => {
       queryClient.invalidateQueries({ queryKey: ['product', productId] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
-    onError: (error: any) => {
+    onError: (error: AxiosError<{ message?: string }>) => {
       const msg = error.response?.data?.message || 'Failed to submit review.';
       toast.error(msg);
     },
@@ -36,7 +37,7 @@ export const useReviews = (productId: number) => {
       queryClient.invalidateQueries({ queryKey: ['product', productId] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
-    onError: (error: any) => {
+    onError: (error: AxiosError<{ message?: string }>) => {
       const msg = error.response?.data?.message || 'Failed to update review.';
       toast.error(msg);
     },
@@ -50,7 +51,7 @@ export const useReviews = (productId: number) => {
       queryClient.invalidateQueries({ queryKey: ['product', productId] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
-    onError: (error: any) => {
+    onError: (error: AxiosError<{ message?: string }>) => {
       const msg = error.response?.data?.message || 'Failed to delete review.';
       toast.error(msg);
     },

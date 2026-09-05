@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import type { AxiosError } from 'axios';
 import { couponAdminApi } from '../../api/admin/couponAdminApi';
 import type { CreateCouponRequest, UpdateCouponRequest } from '../../types';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -23,7 +24,7 @@ export const useAdminCoupons = () => {
       toast.success('Coupon created successfully!');
       queryClient.invalidateQueries({ queryKey: ['adminCoupons'] });
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ message?: string }>) => {
       toast.error(err.response?.data?.message || 'Failed to create coupon.');
     },
   });
@@ -35,7 +36,7 @@ export const useAdminCoupons = () => {
       toast.success('Coupon updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['adminCoupons'] });
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ message?: string }>) => {
       toast.error(err.response?.data?.message || 'Failed to update coupon.');
     },
   });
@@ -47,7 +48,7 @@ export const useAdminCoupons = () => {
       toast.success(`Coupon status set to ${variables.active ? 'Active' : 'Inactive'}`);
       queryClient.invalidateQueries({ queryKey: ['adminCoupons'] });
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ message?: string }>) => {
       toast.error(err.response?.data?.message || 'Failed to update coupon status.');
     },
   });

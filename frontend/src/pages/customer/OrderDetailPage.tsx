@@ -12,6 +12,7 @@ import {
   Package,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import axios from 'axios';
 import { useOrderDetails } from '../../hooks/useOrderDetails';
 import { useOrders } from '../../hooks/useOrders';
 import { usePayment } from '../../hooks/usePayment';
@@ -38,8 +39,11 @@ export const OrderDetailPage: React.FC = () => {
       toast.success(`Order #${order.id} has been cancelled.`);
       setShowCancelModal(false);
       refetch();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to cancel order.');
+    } catch (err: unknown) {
+      const msg =
+        (axios.isAxiosError(err) ? (err.response?.data as { message?: string } | undefined)?.message : undefined) ||
+        (err instanceof Error ? err.message : 'Failed to cancel order.');
+      toast.error(msg);
     }
   };
 

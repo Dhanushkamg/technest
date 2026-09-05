@@ -24,16 +24,33 @@ public class JwtService {
     }
 
     public String generateToken(String email) {
-        return Jwts.builder()
+        return generateToken(email, null);
+    }
+
+    public String generateToken(String email, String role) {
+        var builder = Jwts.builder()
                 .subject(email)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
-                .signWith(getSigningKey())
-                .compact();
+                .expiration(new Date(System.currentTimeMillis() + jwtExpiration));
+
+        if (role != null && !role.isBlank()) {
+            builder.claim("role", role);
+        }
+
+        return builder.signWith(getSigningKey()).compact();
     }
 
     public String extractEmail(String token) {
         return extractAllClaims(token).getSubject();
+    }
+
+    public String extractRole(String token) {
+        try {
+            Claims claims = extractAllClaims(token);
+            return claims.get("role", String.class);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public boolean isTokenValid(String token) {

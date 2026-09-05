@@ -1,5 +1,5 @@
 import axiosClient from './axiosClient';
-import type { CreateOrderRequest, Order, UpdateOrderStatusRequest } from '../types';
+import type { CreateOrderRequest, Order, OrderStatus, UpdateOrderStatusRequest } from '../types';
 
 export const orderApi = {
   createOrder: async (data?: CreateOrderRequest): Promise<Order> => {
@@ -22,8 +22,8 @@ export const orderApi = {
     return response.data;
   },
 
-  updateOrderStatus: async (id: number, status: string): Promise<Order> => {
-    const data: UpdateOrderStatusRequest = { status: status as any };
+  updateOrderStatus: async (id: number, status: OrderStatus | string): Promise<Order> => {
+    const data: UpdateOrderStatusRequest = { status: status as OrderStatus };
     const response = await axiosClient.put<Order>(`/orders/${id}/status`, data);
     return response.data;
   },

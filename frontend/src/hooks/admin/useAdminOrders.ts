@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import type { AxiosError } from 'axios';
 import { orderAdminApi } from '../../api/admin/orderAdminApi';
 import type { OrderStatus } from '../../types';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -26,7 +27,7 @@ export const useAdminOrders = () => {
       queryClient.invalidateQueries({ queryKey: ['adminDashboard'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ message?: string }>) => {
       toast.error(err.response?.data?.message || 'Failed to update order status.');
     },
   });
@@ -39,7 +40,7 @@ export const useAdminOrders = () => {
       queryClient.invalidateQueries({ queryKey: ['adminDashboard'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ message?: string }>) => {
       toast.error(err.response?.data?.message || 'Failed to cancel order.');
     },
   });

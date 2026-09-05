@@ -385,9 +385,8 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
-        // Check order ownership (unless we want to allow admins, but sticking to the basic rule for now)
-        if (!order.getUser().getId().equals(user.getId()) && !user.getRole().equals("ADMIN")) {
-            throw new ForbiddenException("Access denied");
+        if (!"ADMIN".equals(user.getRole())) {
+            throw new ForbiddenException("Access denied: only administrators can change order status");
         }
 
         if (status == null) {

@@ -6,7 +6,7 @@ export interface UpdateStockRequest {
 }
 
 export interface AdjustStockRequest {
-  adjustment: number;
+  quantity: number;
 }
 
 export const productAdminApi = {
@@ -30,8 +30,8 @@ export const productAdminApi = {
     return response.data;
   },
 
-  adjustStock: async (id: number, adjustment: number): Promise<Product> => {
-    const response = await axiosClient.patch<Product>(`/admin/products/${id}/stock/adjust`, { adjustment });
+  adjustStock: async (id: number, quantity: number): Promise<Product> => {
+    const response = await axiosClient.patch<Product>(`/admin/products/${id}/stock/adjust`, { quantity });
     return response.data;
   },
 

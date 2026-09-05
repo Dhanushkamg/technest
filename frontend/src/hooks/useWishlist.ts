@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import type { AxiosError } from 'axios';
 import { wishlistApi } from '../api/wishlistApi';
 import { useAuthStore } from '../store/useAuthStore';
 import type { WishlistResponse } from '../types';
@@ -29,7 +30,7 @@ export const useWishlist = () => {
     onSuccess: (data: WishlistResponse) => {
       queryClient.setQueryData(['wishlist'], data);
     },
-    onError: (error: any) => {
+    onError: (error: AxiosError<{ message?: string }>) => {
       const msg = error.response?.data?.message || 'Failed to add item to wishlist.';
       toast.error(msg);
     },
@@ -41,7 +42,7 @@ export const useWishlist = () => {
     onSuccess: (data: WishlistResponse) => {
       queryClient.setQueryData(['wishlist'], data);
     },
-    onError: (error: any) => {
+    onError: (error: AxiosError<{ message?: string }>) => {
       const msg = error.response?.data?.message || 'Failed to remove item from wishlist.';
       toast.error(msg);
     },

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import type { AxiosError } from 'axios';
 import { productAdminApi } from '../../api/admin/productAdminApi';
 import type { ProductRequest } from '../../types';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -25,7 +26,7 @@ export const useAdminProducts = () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['adminDashboard'] });
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ message?: string }>) => {
       toast.error(err.response?.data?.message || 'Failed to create product.');
     },
   });
@@ -38,7 +39,7 @@ export const useAdminProducts = () => {
       queryClient.invalidateQueries({ queryKey: ['adminProducts'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ message?: string }>) => {
       toast.error(err.response?.data?.message || 'Failed to update product.');
     },
   });
@@ -51,20 +52,20 @@ export const useAdminProducts = () => {
       queryClient.invalidateQueries({ queryKey: ['adminProducts'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ message?: string }>) => {
       toast.error(err.response?.data?.message || 'Failed to update stock.');
     },
   });
 
   const adjustStockMutation = useMutation({
-    mutationFn: ({ id, adjustment }: { id: number; adjustment: number }) =>
-      productAdminApi.adjustStock(id, adjustment),
+    mutationFn: ({ id, quantity, adjustment }: { id: number; quantity?: number; adjustment?: number }) =>
+      productAdminApi.adjustStock(id, quantity ?? adjustment ?? 0),
     onSuccess: () => {
       toast.success('Stock adjusted!');
       queryClient.invalidateQueries({ queryKey: ['adminProducts'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ message?: string }>) => {
       toast.error(err.response?.data?.message || 'Failed to adjust stock.');
     },
   });
@@ -77,7 +78,7 @@ export const useAdminProducts = () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['adminDashboard'] });
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ message?: string }>) => {
       toast.error(err.response?.data?.message || 'Failed to delete product.');
     },
   });

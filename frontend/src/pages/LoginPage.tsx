@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Cpu, Mail, Lock, Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import axios from 'axios';
 import { authApi } from '../api/authApi';
 import { useAuthStore } from '../store/useAuthStore';
 
@@ -74,8 +75,10 @@ export const LoginPage: React.FC = () => {
 
       // Redirect to intended page or home
       navigate(fromLocation, { replace: true });
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Invalid email or password. Please try again.';
+    } catch (err: unknown) {
+      const msg =
+        (axios.isAxiosError(err) ? (err.response?.data as { message?: string } | undefined)?.message : undefined) ||
+        (err instanceof Error ? err.message : 'Invalid email or password. Please try again.');
       setApiError(msg);
     } finally {
       setIsLoading(false);
