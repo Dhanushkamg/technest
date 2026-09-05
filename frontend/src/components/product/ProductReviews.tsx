@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, MessageSquare, Edit3, Trash2, Loader2, AlertCircle, CheckCircle2, User } from 'lucide-react';
+import { Star, MessageSquare, Edit3, Trash2, Loader2, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { useReviews } from '../../hooks/useReviews';
 import { useAuthStore } from '../../store/useAuthStore';
 import RatingStars from '../common/RatingStars';
+import { Button } from '../ui/Button';
 import type { Review } from '../../types';
 
 interface ProductReviewsProps {
@@ -98,25 +99,18 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({
   });
 
   return (
-    <div className="mt-16 pt-12 border-t border-slate-800/80 space-y-12">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
-            <MessageSquare className="w-6 h-6 text-cyan-400" /> Customer Reviews & Ratings
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">Real feedback from verified purchasers</p>
-        </div>
-      </div>
-
+    <div className="space-y-8">
       {/* Rating Breakdown Header */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 bg-slate-900/60 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
         {/* Left: Overall Score */}
-        <div className="flex flex-col items-center justify-center p-4 border-b md:border-b-0 md:border-r border-slate-800/80 text-center">
-          <span className="text-5xl font-black text-white mb-2">
+        <div className="flex flex-col items-center justify-center p-4 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 text-center">
+          <span className="text-5xl font-black text-slate-900 dark:text-white mb-2">
             {averageRating ? Number(averageRating).toFixed(1) : '0.0'}
           </span>
           <RatingStars rating={averageRating} reviewCount={totalRev} size="md" />
-          <span className="text-xs text-slate-400 mt-2 font-medium">Based on {totalRev} verified reviews</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">
+            Based on {totalRev} verified reviews
+          </span>
         </div>
 
         {/* Middle: Rating Bar Breakdown */}
@@ -126,14 +120,14 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({
             const pct = totalRev > 0 ? (count / totalRev) * 100 : 0;
             return (
               <div key={stars} className="flex items-center gap-3 text-xs">
-                <span className="w-8 text-slate-400 font-semibold text-right">{stars} ★</span>
-                <div className="flex-1 h-2 rounded-full bg-slate-800 overflow-hidden">
+                <span className="w-8 text-slate-600 dark:text-slate-400 font-semibold text-right">{stars} ★</span>
+                <div className="flex-1 h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-brand-500 to-indigo-500 rounded-full transition-all duration-500"
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <span className="w-10 text-slate-500 text-right">{count}</span>
+                <span className="w-10 text-slate-400 dark:text-slate-500 text-right font-mono">{count}</span>
               </div>
             );
           })}
@@ -141,16 +135,16 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({
       </div>
 
       {/* Write / Edit Review Form */}
-      <div className="bg-slate-900/70 border border-slate-800/90 rounded-3xl p-6 backdrop-blur-xl space-y-4">
+      <div className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <Edit3 className="w-5 h-5 text-cyan-400" />
+          <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Edit3 className="w-5 h-5 text-brand-500 dark:text-brand-400" />
             {editingReviewId ? 'Edit Your Review' : 'Write a Customer Review'}
           </h3>
           {editingReviewId && (
             <button
               onClick={handleCancelEdit}
-              className="text-xs text-slate-400 hover:text-white transition-colors"
+              className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
             >
               Cancel Edit
             </button>
@@ -158,20 +152,21 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({
         </div>
 
         {!isAuthenticated ? (
-          <div className="p-6 text-center border border-dashed border-slate-800 rounded-2xl bg-slate-950/40">
-            <p className="text-slate-400 text-sm mb-4">Have you purchased this product? Sign in to share your experience.</p>
-            <button
-              onClick={() => navigate('/login')}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all"
-            >
+          <div className="p-6 text-center border border-dashed border-slate-300 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-slate-950/40">
+            <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mb-4">
+              Have you purchased this product? Sign in to share your experience.
+            </p>
+            <Button variant="primary" size="sm" onClick={() => navigate('/login')}>
               Sign In to Review
-            </button>
+            </Button>
           </div>
         ) : (
           <form onSubmit={handleSubmitReview} className="space-y-4">
             {/* Interactive Rating Stars */}
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-2">Select Your Rating *</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-2">
+                Select Your Rating *
+              </label>
               <div className="flex items-center gap-2">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
@@ -180,46 +175,46 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({
                     onClick={() => setRating(star)}
                     onMouseEnter={() => setHoverRating(star)}
                     onMouseLeave={() => setHoverRating(0)}
-                    className="p-1 text-amber-400 hover:scale-110 transition-transform"
+                    className="p-1 text-amber-400 hover:scale-110 transition-transform cursor-pointer"
                   >
                     <Star
                       className={`w-6 h-6 ${
                         star <= (hoverRating || rating)
                           ? 'text-amber-400 fill-amber-400'
-                          : 'text-slate-700'
+                          : 'text-slate-300 dark:text-slate-700'
                       }`}
                     />
                   </button>
                 ))}
-                <span className="text-xs text-slate-400 ml-2 font-bold">{rating} / 5 Stars</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 ml-2 font-bold">{rating} / 5 Stars</span>
               </div>
             </div>
 
             {/* Comment Area */}
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-2">Your Review Comments *</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-2">
+                Your Review Comments *
+              </label>
               <textarea
+                required
                 rows={3}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder="Share performance, build quality, setup experience..."
-                className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-slate-100 text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                placeholder="Share technical feedback, build quality, and usability..."
+                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:border-brand-500 outline-none resize-none"
               />
             </div>
 
             <div className="flex justify-end">
-              <button
+              <Button
                 type="submit"
-                disabled={isCreatingReview || isUpdatingReview || !comment.trim()}
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-cyan-500/25 disabled:opacity-50 transition-all"
+                variant="primary"
+                size="sm"
+                isLoading={isCreatingReview || isUpdatingReview}
+                disabled={!comment.trim()}
               >
-                {isCreatingReview || isUpdatingReview ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="w-4 h-4" />
-                )}
                 {editingReviewId ? 'Update Review' : 'Submit Review'}
-              </button>
+              </Button>
             </div>
           </form>
         )}
@@ -227,67 +222,66 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({
 
       {/* Reviews List */}
       <div className="space-y-4">
-        <h3 className="text-lg font-bold text-white">All Reviews ({reviews.length})</h3>
+        <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <MessageSquare className="w-5 h-5 text-brand-500 dark:text-brand-400" />
+          Verified Reviews ({reviews.length})
+        </h3>
 
         {isLoading ? (
           <div className="space-y-4 animate-pulse">
-            {[1, 2].map((i) => (
-              <div key={i} className="h-28 bg-slate-900 border border-slate-800 rounded-2xl p-4" />
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-24 bg-slate-100 dark:bg-slate-900 rounded-2xl" />
             ))}
           </div>
         ) : reviews.length === 0 ? (
-          <div className="p-8 text-center border border-slate-800/80 rounded-2xl bg-slate-900/40">
-            <p className="text-slate-400 text-sm">No reviews yet for this product. Be the first to leave a review!</p>
+          <div className="p-8 text-center bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs">
+            No customer reviews yet. Be the first to review this product!
           </div>
         ) : (
           <div className="space-y-4">
-            {reviews.map((rev) => {
-              const isOwner = user?.id === rev.userId;
+            {reviews.map((r) => {
+              const isOwner = user?.id === r.userId;
+              const isDeleting = deletingReviewId === r.id;
+
               return (
-                <motion.div
-                  key={rev.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`p-5 rounded-2xl border transition-all ${
-                    isOwner
-                      ? 'bg-slate-900/80 border-cyan-500/50 shadow-lg shadow-cyan-500/5'
-                      : 'bg-slate-900/50 border-slate-800/80'
-                  }`}
+                <div
+                  key={r.id}
+                  className="p-5 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3"
                 >
-                  <div className="flex items-start justify-between gap-4 mb-2">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700/60 flex items-center justify-center text-cyan-400 font-bold text-xs">
-                        {rev.userName?.[0]?.toUpperCase() || <User className="w-4 h-4" />}
+                      <div className="w-8 h-8 rounded-full bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/30 flex items-center justify-center text-brand-600 dark:text-brand-400 font-bold text-xs">
+                        <User className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-100 text-sm">{rev.userName}</span>
-                          {isOwner && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-950 text-cyan-400 border border-cyan-800/60">
-                              Your Review
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[11px] text-slate-500">
-                          {new Date(rev.createdAt).toLocaleDateString()}
+                        <span className="font-bold text-slate-900 dark:text-white text-xs block">
+                          {r.userName || `User #${r.userId}`}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          {new Date(r.createdAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
                         </span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <RatingStars rating={rev.rating} size="sm" />
+                      <RatingStars rating={r.rating} reviewCount={1} showCount={false} />
+
                       {isOwner && (
                         <div className="flex items-center gap-1">
                           <button
-                            onClick={() => handleEditClick(rev)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800 transition-colors"
+                            onClick={() => handleEditClick(r)}
+                            className="p-1.5 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
                             title="Edit Review"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => setDeletingReviewId(rev.id)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors"
+                            onClick={() => setDeletingReviewId(r.id)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
                             title="Delete Review"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -297,56 +291,42 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({
                     </div>
                   </div>
 
-                  <p className="text-slate-300 text-sm leading-relaxed pl-12">{rev.comment}</p>
-                </motion.div>
+                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">{r.comment}</p>
+
+                  {/* Inline Delete Confirmation */}
+                  <AnimatePresence>
+                    {isDeleting && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs"
+                      >
+                        <span className="text-rose-600 dark:text-rose-400 font-semibold">Delete this review permanently?</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setDeletingReviewId(null)}
+                            className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleDeleteConfirm(r.id)}
+                            disabled={isDeletingReview}
+                            className="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white font-bold flex items-center gap-1"
+                          >
+                            {isDeletingReview && <Loader2 className="w-3 h-3 animate-spin" />} Delete
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               );
             })}
           </div>
         )}
       </div>
-
-      {/* Delete Confirmation Modal */}
-      <AnimatePresence>
-        {deletingReviewId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setDeletingReviewId(null)}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative z-10 w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl text-center space-y-4"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-rose-950/60 border border-rose-800/50 flex items-center justify-center mx-auto text-rose-400">
-                <AlertCircle className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white">Delete Review?</h3>
-              <p className="text-xs text-slate-400">Are you sure you want to delete your review? This action cannot be undone.</p>
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setDeletingReviewId(null)}
-                  disabled={isDeletingReview}
-                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleDeleteConfirm(deletingReviewId)}
-                  disabled={isDeletingReview}
-                  className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2"
-                >
-                  {isDeletingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Delete'}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Package, RotateCcw, Cpu } from 'lucide-react';
 import type { ProductQueryParams } from '../types';
@@ -13,22 +14,82 @@ import { ErrorState } from '../components/ui/ErrorState';
 import { EmptyState } from '../components/ui/EmptyState';
 
 export const ProductsPage: React.FC = () => {
-  // Filter state
-  const [searchInput, setSearchInput] = useState('');
-  const debouncedSearch = useDebounce(searchInput, 300);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Initial values parsed from URL search params
+  const initialSearch = searchParams.get('search') || '';
+  const initialCategoryId = searchParams.get('categoryId')
+    ? Number(searchParams.get('categoryId'))
+    : undefined;
+  const initialMinPrice = searchParams.get('minPrice')
+    ? Number(searchParams.get('minPrice'))
+    : undefined;
+  const initialMaxPrice = searchParams.get('maxPrice')
+    ? Number(searchParams.get('maxPrice'))
+    : undefined;
+  const initialMinRating = searchParams.get('minRating')
+    ? Number(searchParams.get('minRating'))
+    : undefined;
+  const initialSortBy = searchParams.get('sortBy') || 'id';
+  const initialSortDir = (searchParams.get('sortDir') as 'asc' | 'desc') || 'asc';
+  const initialPage = searchParams.get('page') ? Number(searchParams.get('page')) : 0;
+  const initialView = (searchParams.get('view') as 'grid' | 'list') || 'grid';
+  const initialBrand = searchParams.get('brand') || undefined;
+
+  // State
+  const [searchInput, setSearchInput] = useState(initialSearch);
+  const debouncedSearch = useDebounce(searchInput, 350);
 
   const [filters, setFilters] = useState<ProductQueryParams>({
-    page: 0,
+    page: initialPage,
     size: 12,
-    sortBy: 'id',
-    sortDir: 'asc',
+    sortBy: initialSortBy,
+    sortDir: initialSortDir,
+    categoryId: initialCategoryId,
+    minPrice: initialMinPrice,
+    maxPrice: initialMaxPrice,
+    minRating: initialMinRating,
   });
 
-  // Combine debounced search with query params
-  const activeParams: ProductQueryParams = {
-    ...filters,
-    search: debouncedSearch || undefined,
-  };
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(initialView);
+  const [selectedBrand, setSelectedBrand] = useState<string | undefined>(initialBrand);
+
+  // Sync state back to URL query parameters
+  const updateUrlParams = useCallback(() => {
+    const params: Record<string, string> = {};
+    if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+    if (filters.categoryId) params.categoryId = String(filters.categoryId);
+    if (filters.minPrice !== undefined && filters.minPrice > 0)
+      params.minPrice = String(filters.minPrice);
+    if (filters.maxPrice !== undefined && filters.maxPrice > 0)
+      params.maxPrice = String(filters.maxPrice);
+    if (filters.minRating !== undefined && filters.minRating > 0)
+      params.minRating = String(filters.minRating);
+    if (filters.sortBy && filters.sortBy !== 'id') params.sortBy = filters.sortBy;
+    if (filters.sortDir && filters.sortDir !== 'asc') params.sortDir = filters.sortDir;
+    if (filters.page && filters.page > 0) params.page = String(filters.page);
+    if (viewMode !== 'grid') params.view = viewMode;
+    if (selectedBrand) params.brand = selectedBrand;
+
+    setSearchParams(params, { replace: true });
+  }, [debouncedSearch, filters, viewMode, selectedBrand, setSearchParams]);
+
+  useEffect(() => {
+    updateUrlParams();
+  }, [updateUrlParams]);
+
+  // Combine debounced search or brand with query params for backend
+  const activeParams: ProductQueryParams = useMemo(() => {
+    let effectiveSearch = debouncedSearch.trim();
+    if (selectedBrand && !effectiveSearch.toLowerCase().includes(selectedBrand.toLowerCase())) {
+      effectiveSearch = effectiveSearch ? `${selectedBrand} ${effectiveSearch}` : selectedBrand;
+    }
+
+    return {
+      ...filters,
+      search: effectiveSearch || undefined,
+    };
+  }, [filters, debouncedSearch, selectedBrand]);
 
   // Fetch categories query
   const { data: categories = [] } = useQuery({
@@ -57,13 +118,23 @@ export const ProductsPage: React.FC = () => {
     }));
   };
 
+  const handleBrandChange = (brand?: string) => {
+    setSelectedBrand(brand);
+    setFilters((prev) => ({ ...prev, page: 0 }));
+  };
+
   const handleResetFilters = () => {
     setSearchInput('');
+    setSelectedBrand(undefined);
     setFilters({
       page: 0,
       size: 12,
       sortBy: 'id',
       sortDir: 'asc',
+      categoryId: undefined,
+      minPrice: undefined,
+      maxPrice: undefined,
+      minRating: undefined,
     });
   };
 
@@ -86,13 +157,13 @@ export const ProductsPage: React.FC = () => {
       <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 pb-6">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/30 text-brand-700 dark:text-brand-400 text-xs font-semibold uppercase tracking-wider mb-3">
-            <Cpu className="w-3.5 h-3.5" /> High Performance Hardware
+            <Cpu className="w-3.5 h-3.5" /> Flagship Hardware Discovery
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
             Product <span className="bg-gradient-to-r from-brand-500 to-indigo-500 bg-clip-text text-transparent">Catalog</span>
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-            Browse our curated selection of flagship electronics, gadgets, and computing systems.
+            Explore authentic laptops, audio systems, smart wearables, and computing displays.
           </p>
         </div>
 
@@ -111,6 +182,10 @@ export const ProductsPage: React.FC = () => {
         onSearchChange={setSearchInput}
         onFilterChange={handleFilterChange}
         onResetFilters={handleResetFilters}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        selectedBrand={selectedBrand}
+        onBrandChange={handleBrandChange}
       />
 
       {/* Loading UX: Skeletons */}
@@ -130,7 +205,7 @@ export const ProductsPage: React.FC = () => {
         <EmptyState
           icon={Package}
           title="No Products Found"
-          description="We couldn't find any products matching your current filters or search query."
+          description="We couldn't find any products matching your current filters, brand, or search query."
           action={{
             label: 'Reset All Filters',
             onClick: handleResetFilters,
@@ -139,10 +214,10 @@ export const ProductsPage: React.FC = () => {
         />
       )}
 
-      {/* Product Grid */}
+      {/* Product Grid / List */}
       {!isLoading && !isError && products.length > 0 && (
         <>
-          <ProductGrid products={products} />
+          <ProductGrid products={products} viewMode={viewMode} />
 
           {/* Backend Pagination */}
           <Pagination
