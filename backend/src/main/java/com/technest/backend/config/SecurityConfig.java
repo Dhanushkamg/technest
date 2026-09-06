@@ -71,12 +71,16 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
-            .headers(headers -> headers
-                .contentTypeOptions(contentType -> {}) // X-Content-Type-Options: nosniff
-                .frameOptions(frame -> frame.deny())  // X-Frame-Options: DENY
-                .referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
-                .permissionsPolicy(permissions -> permissions.policy("camera=(), microphone=(), geolocation=()"))
-            )
+            .headers(headers -> {
+                headers.contentTypeOptions(contentType -> {}); // X-Content-Type-Options: nosniff
+                headers.frameOptions(frame -> frame.deny());  // X-Frame-Options: DENY
+                headers.referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN));
+                headers.permissionsPolicy(permissions -> permissions.policy("camera=(), microphone=(), geolocation=()"));
+                headers.httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(31536000)
+                );
+            })
             .exceptionHandling(ex -> ex
                 // Return 401 instead of redirect when unauthenticated
                 .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))

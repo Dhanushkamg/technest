@@ -45,6 +45,14 @@ class SecurityHeadersTest {
         mockMvc.perform(get("/api/categories"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"))
-                .andExpect(header().string("X-Frame-Options", "DENY"));
+                .andExpect(header().string("X-Frame-Options", "DENY"))
+                .andExpect(header().doesNotExist("Strict-Transport-Security"));
+    }
+
+    @Test
+    void hstsHeader_PresentOnHttpsRequestsOnly() throws Exception {
+        mockMvc.perform(get("/api/products").secure(true))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Strict-Transport-Security", "max-age=31536000 ; includeSubDomains"));
     }
 }
