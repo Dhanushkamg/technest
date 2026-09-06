@@ -53,14 +53,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     let renderedIcon = leftIcon;
     if (icon) {
-      renderedIcon =
-        typeof icon === 'function' ? (
-          React.createElement(icon as React.ComponentType<{ className?: string }>, {
-            className: 'w-4 h-4',
-          })
-        ) : (
-          (icon as React.ReactNode)
-        );
+      if (React.isValidElement(icon)) {
+        renderedIcon = icon;
+      } else if (
+        typeof icon === 'function' ||
+        (typeof icon === 'object' && icon !== null && ('$$typeof' in icon || 'render' in icon))
+      ) {
+        renderedIcon = React.createElement(icon as React.ComponentType<{ className?: string }>, {
+          className: 'w-4 h-4',
+        });
+      } else {
+        renderedIcon = icon as React.ReactNode;
+      }
     }
 
     return (

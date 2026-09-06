@@ -173,9 +173,11 @@ npm run dev
 
 ## Database Migrations (Flyway)
 
-Database schema versioning is managed via Flyway:
+Database schema versioning and initial catalog population are managed via Flyway:
 - `V1__init_schema.sql` — Baseline schema for all tables, constraints, foreign keys, and sequences.
 - `V2__add_performance_indexes.sql` — Optimistic locking columns (`version`), deduplication keys, and composite performance query indexes.
+- `V3__seed_catalog_data.sql` — Initial standard electronics categories and hardware products seed data.
+- `V4__expand_catalog_population.sql` — Extended catalog population across all primary hardware departments (30+ products).
 
 In production, Hibernate is configured to `validate` the schema against the entity model (`spring.jpa.hibernate.ddl-auto=validate`).
 

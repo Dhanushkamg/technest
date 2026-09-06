@@ -24,13 +24,22 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   action,
   className = '',
 }) => {
-  // Support both a Lucide component class and a rendered React node
-  const IconNode =
-    icon == null
-      ? <PackageOpen className="w-8 h-8" />
-      : typeof icon === 'function'
-      ? React.createElement(icon as LucideIcon, { className: 'w-8 h-8' })
-      : icon;
+  // Support Lucide component class/object and rendered React node
+  let IconNode: React.ReactNode = <PackageOpen className="w-8 h-8" />;
+  if (icon != null) {
+    if (React.isValidElement(icon)) {
+      IconNode = icon;
+    } else if (
+      typeof icon === 'function' ||
+      (typeof icon === 'object' && ('$$typeof' in icon || 'render' in icon))
+    ) {
+      IconNode = React.createElement(icon as React.ComponentType<{ className?: string }>, {
+        className: 'w-8 h-8',
+      });
+    } else {
+      IconNode = icon as React.ReactNode;
+    }
+  }
 
   return (
     <div

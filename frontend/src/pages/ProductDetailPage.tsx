@@ -509,7 +509,7 @@ export const ProductDetailPage: React.FC = () => {
                 onClick={handleAddToCart}
                 disabled={product.stock === 0 || isAddingToCart}
                 isLoading={isAddingToCart}
-                icon={ShoppingBag}
+                leftIcon={<ShoppingBag className="w-5 h-5" />}
                 className="flex-1 shadow-lg shadow-brand-500/25"
               >
                 Add to Cart
@@ -520,7 +520,7 @@ export const ProductDetailPage: React.FC = () => {
                 size="lg"
                 onClick={handleBuyNow}
                 disabled={product.stock === 0}
-                icon={Zap}
+                leftIcon={<Zap className="w-5 h-5" />}
                 className="flex-1 bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-300 border-brand-200 dark:border-brand-500/30 hover:bg-brand-100"
               >
                 Buy Now
