@@ -12,6 +12,7 @@ import ProductSkeleton from '../components/product/ProductSkeleton';
 import Pagination from '../components/common/Pagination';
 import { ErrorState } from '../components/ui/ErrorState';
 import { EmptyState } from '../components/ui/EmptyState';
+import { SEO } from '../components/common/SEO';
 
 export const ProductsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -153,6 +154,15 @@ export const ProductsPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <SEO
+        title={debouncedSearch ? `Search: "${debouncedSearch}" | Products` : 'All Electronics & Gadgets | Products'}
+        description="Browse our complete catalog of certified laptops, smartphones, PC hardware, audio equipment, and wearable devices."
+        canonicalUrl={`${window.location.origin}/products`}
+        breadcrumbs={[
+          { name: 'Home', item: '/' },
+          { name: 'Products', item: '/products' },
+        ]}
+      />
       {/* Header Banner */}
       <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 pb-6">
         <div>

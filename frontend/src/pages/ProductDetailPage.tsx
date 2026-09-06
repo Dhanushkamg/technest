@@ -32,6 +32,7 @@ import { ErrorState } from '../components/ui/ErrorState';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Tabs } from '../components/ui/Tabs';
+import { SEO } from '../components/common/SEO';
 
 export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -324,6 +325,30 @@ export const ProductDetailPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-16">
+      <SEO
+        title={`${product.name} — Buy Online`}
+        description={product.description || `Buy ${product.name} at TechNest. Fast shipping, guaranteed authentic, and official manufacturer warranty.`}
+        canonicalUrl={`${window.location.origin}/products/${product.id}`}
+        ogImage={images[0]}
+        ogType="product"
+        productData={{
+          name: product.name,
+          description: product.description,
+          price: product.price,
+          currency: 'LKR',
+          stock: product.stock,
+          category: product.categoryName,
+          image: images[0],
+          averageRating: product.averageRating,
+          reviewCount: product.reviewCount,
+        }}
+        breadcrumbs={[
+          { name: 'Home', item: '/' },
+          { name: 'Products', item: '/products' },
+          { name: product.categoryName, item: `/products?categoryId=${product.categoryId}` },
+          { name: product.name, item: `/products/${product.id}` },
+        ]}
+      />
       {/* Breadcrumb & Navigation */}
       <div className="flex items-center justify-between flex-wrap gap-4 text-xs text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-2">

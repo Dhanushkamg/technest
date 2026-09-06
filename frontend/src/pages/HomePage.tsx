@@ -31,6 +31,7 @@ import { categoryApi } from '../api/categoryApi';
 import { ProductCard } from '../components/product/ProductCard';
 import { Button } from '../components/ui/Button';
 import { RatingStars } from '../components/common/RatingStars';
+import { SEO } from '../components/common/SEO';
 import type { Category } from '../types';
 
 interface HeroSlide {
@@ -262,6 +263,11 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="flex flex-col space-y-16 sm:space-y-24 pb-16 overflow-hidden">
+      <SEO
+        title="TechNest — Next-Gen Electronics & Tech Marketplace"
+        description="Discover cutting-edge laptops, smartphones, PC components, audio gear, and accessories at TechNest."
+        canonicalUrl={window.location.origin}
+      />
       {/* 1. HERO CAROUSEL */}
       <section
         aria-label="Featured Electronics Showcase"

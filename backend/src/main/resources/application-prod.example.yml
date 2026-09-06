@@ -1,0 +1,66 @@
+# =============================================================================
+# TechNest Production Application Profile Example (application-prod.yml)
+# =============================================================================
+
+spring:
+  application:
+    name: technest-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 20000
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
+    locations: classpath:db/migration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+payhere:
+  merchant-id: ${PAYHERE_MERCHANT_ID}
+  merchant-secret: ${PAYHERE_MERCHANT_SECRET}
+  sandbox: ${PAYHERE_SANDBOX:false}
+  currency: ${PAYHERE_CURRENCY:LKR}
+  return-url: ${PAYHERE_RETURN_URL}
+  cancel-url: ${PAYHERE_CANCEL_URL}
+  notify-url: ${PAYHERE_NOTIFY_URL}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: false
+
+logging:
+  level:
+    root: WARN
+    com.technest.backend: INFO
+    org.springframework.web: WARN
+    org.hibernate: ERROR
