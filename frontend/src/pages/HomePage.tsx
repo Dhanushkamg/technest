@@ -24,6 +24,8 @@ import {
   Watch,
   Flame,
   Tag,
+  Gamepad2,
+  Package,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { productApi } from '../api/productApi';
@@ -50,13 +52,13 @@ interface HeroSlide {
 const HERO_SLIDES: HeroSlide[] = [
   {
     id: 1,
-    tag: 'Flagship Hardware 2026',
-    title: 'Next-Gen Computing &',
-    highlight: 'Ultra-Performance Laptops',
+    tag: 'Flagship Electronics 2026',
+    title: 'Upgrade Your',
+    highlight: 'Digital Life',
     description:
-      'Engineered for developers, creators, and power users. Experience unprecedented performance with multi-core silicon and stunning displays.',
-    ctaText: 'Explore Laptops',
-    ctaLink: '/products?search=Laptop',
+      'Discover cutting-edge laptops, high-performance smartphones, audio gear, and precision tech workstations engineered for power users.',
+    ctaText: 'Shop Now',
+    ctaLink: '/products',
     badge: 'Pro Tier Gear',
     image:
       'https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&w=1200&q=80',
@@ -66,9 +68,9 @@ const HERO_SLIDES: HeroSlide[] = [
     id: 2,
     tag: 'Studio Grade Fidelity',
     title: 'Immersive Acoustics &',
-    highlight: 'Lossless Wireless Audio',
+    highlight: 'Lossless Audio',
     description:
-      'Precision-tuned drivers with active spatial cancellation. Hear studio masters the way audio engineers designed them to be experienced.',
+      'Precision-tuned drivers with active spatial noise cancellation. Experience studio masters exactly as sound engineers intended.',
     ctaText: 'Discover Audio',
     ctaLink: '/products?search=Audio',
     badge: 'Hi-Res Audio',
@@ -80,9 +82,9 @@ const HERO_SLIDES: HeroSlide[] = [
     id: 3,
     tag: 'Visual Precision',
     title: 'Curved OLED Displays &',
-    highlight: '240Hz Esports Monitors',
+    highlight: 'Pro Workstations',
     description:
-      'Quantum-dot OLED panels with ultra-low latency response times. Transform your workstation and gaming battlestation.',
+      'Quantum-dot OLED panels with ultra-low latency response times. Transform your creative workflow and gaming battlestation.',
     ctaText: 'Shop Monitors',
     ctaLink: '/products?search=Monitor',
     badge: 'OLED Perfection',
@@ -96,54 +98,52 @@ const TRUST_BENEFITS = [
   {
     icon: Truck,
     title: 'Express Dispatch',
-    desc: 'Free express delivery on all orders over $99 nationwide.',
+    desc: 'Rapid order processing and insured direct nationwide shipping.',
   },
   {
     icon: Shield,
     title: 'Manufacturer Warranty',
-    desc: '100% genuine electronics with direct factory warranty.',
+    desc: '100% authentic electronics with official manufacturer warranty.',
   },
   {
     icon: Zap,
     title: 'Secure Payments',
-    desc: 'Bank-grade 256-bit encryption with PayHere & card checkout.',
+    desc: 'Bank-grade 256-bit encryption with PayHere and card checkout.',
   },
   {
     icon: Headphones,
-    title: '24/7 Tech Support',
-    desc: 'Dedicated hardware specialists ready to assist your build.',
+    title: 'Customer Support',
+    desc: 'Responsive hardware support to assist your shopping experience.',
   },
 ];
 
 const BRANDS = [
-  { name: 'Apple', logo: ' Apple', query: 'Apple' },
-  { name: 'ASUS', logo: 'ASUS ROG', query: 'ASUS' },
-  { name: 'Sony', logo: 'SONY', query: 'Sony' },
-  { name: 'Dell', logo: 'DELL Alienware', query: 'Dell' },
-  { name: 'Samsung', logo: 'SAMSUNG', query: 'Samsung' },
-  { name: 'Logitech', logo: 'Logitech G', query: 'Logitech' },
-  { name: 'Razer', logo: 'RAZER', query: 'Razer' },
-  { name: 'Corsair', logo: 'CORSAIR', query: 'Corsair' },
+  { name: 'Apple', logo: 'Apple', query: 'Apple' },
+  { name: 'Samsung', logo: 'Samsung', query: 'Samsung' },
+  { name: 'Sony', logo: 'Sony', query: 'Sony' },
+  { name: 'Dell', logo: 'Dell', query: 'Dell' },
+  { name: 'ASUS', logo: 'ASUS', query: 'ASUS' },
+  { name: 'Lenovo', logo: 'Lenovo', query: 'Lenovo' },
+  { name: 'Logitech', logo: 'Logitech', query: 'Logitech' },
+  { name: 'Razer', logo: 'Razer', query: 'Razer' },
 ];
 
 const TESTIMONIALS = [
   {
     name: 'Alex Rivera',
-    role: 'Full-Stack Software Engineer',
+    role: 'Software Engineer',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
     rating: 5,
     comment:
-      'TechNest delivers top-tier workstation hardware. Fast shipping, pristine packaging, and the developer support is exceptional.',
-    date: 'Verified Buyer · Aug 2026',
+      'TechNest delivers top-tier workstation hardware. Fast shipping, pristine packaging, and the hardware catalog is top notch.',
   },
   {
     name: 'Sarah Chen',
-    role: 'UX/UI Lead & Creative Producer',
+    role: 'UI Designer & Producer',
     avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80',
     rating: 5,
     comment:
-      'Upgraded my studio monitors and audio setup. The genuine factory warranty and live tracking gave me complete peace of mind.',
-    date: 'Verified Buyer · Jul 2026',
+      'Upgraded my studio monitors and audio setup. The genuine factory warranty and live order tracking gave me complete peace of mind.',
   },
   {
     name: 'Marcus Vance',
@@ -151,8 +151,7 @@ const TESTIMONIALS = [
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
     rating: 5,
     comment:
-      'Seamless checkout experience with PayHere and instant coupon verification. TechNest is now my primary electronics portal.',
-    date: 'Verified Buyer · Aug 2026',
+      'Seamless checkout experience with PayHere and instant coupon verification. TechNest is my go-to electronics marketplace.',
   },
 ];
 
@@ -164,12 +163,12 @@ export const HomePage: React.FC = () => {
   const [isPaused, setIsPaused] = useState(false);
 
   // Tabs state for catalog showcase
-  const [activeTab, setActiveTab] = useState<'featured' | 'new' | 'best'>('featured');
+  const [activeTab, setActiveTab] = useState<'featured' | 'rated' | 'new'>('featured');
 
-  // Flash deals countdown timer (mock 12-hour cycle)
-  const [timeLeft, setTimeLeft] = useState({ hours: 9, minutes: 42, seconds: 18 });
+  // Flash deals countdown timer (static daily cycle)
+  const [timeLeft, setTimeLeft] = useState({ hours: 8, minutes: 35, seconds: 40 });
 
-  // Student promo coupon copied status
+  // Coupon copied status
   const [copiedCoupon, setCopiedCoupon] = useState(false);
 
   // Newsletter state
@@ -183,30 +182,38 @@ export const HomePage: React.FC = () => {
     staleTime: 1000 * 60 * 10,
   });
 
-  // Fetch real featured/best products for showcase
+  // Fetch real featured products for showcase
   const { data: pagedProducts } = useQuery({
     queryKey: ['home-showcase-products', activeTab],
     queryFn: () => {
       if (activeTab === 'new') {
-        return productApi.getProducts({ size: 8, sortBy: 'createdAt', sortDir: 'desc' });
+        return productApi.getProducts({ size: 8, sortBy: 'id', sortDir: 'desc' });
       }
-      if (activeTab === 'best') {
-        return productApi.getProducts({ size: 8, sortBy: 'reviewCount', sortDir: 'desc' });
+      if (activeTab === 'rated') {
+        return productApi.getProducts({ size: 8, sortBy: 'averageRating', sortDir: 'desc' });
       }
-      return productApi.getProducts({ size: 8, sortBy: 'id', sortDir: 'asc' });
+      return productApi.getProducts({ size: 8, sortBy: 'price', sortDir: 'desc' });
     },
     staleTime: 1000 * 60 * 5,
   });
 
-  // Fetch flash deal products
+  // Fetch flash deal products (accessible budget deals)
   const { data: flashDealsData } = useQuery({
     queryKey: ['home-flash-deals'],
     queryFn: () => productApi.getProducts({ size: 4, sortBy: 'price', sortDir: 'asc' }),
     staleTime: 1000 * 60 * 5,
   });
 
+  // Fetch new arrivals separately
+  const { data: newArrivalsData } = useQuery({
+    queryKey: ['home-new-arrivals'],
+    queryFn: () => productApi.getProducts({ size: 4, sortBy: 'id', sortDir: 'desc' }),
+    staleTime: 1000 * 60 * 5,
+  });
+
   const showcaseProducts = pagedProducts?.content || [];
   const flashProducts = flashDealsData?.content || [];
+  const newArrivals = newArrivalsData?.content || [];
 
   // Autoplay hero carousel
   useEffect(() => {
@@ -217,7 +224,7 @@ export const HomePage: React.FC = () => {
     return () => clearInterval(interval);
   }, [isPaused]);
 
-  // Flash deals countdown timer effect
+  // Flash deals timer effect
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -247,7 +254,7 @@ export const HomePage: React.FC = () => {
     setTimeout(() => {
       setIsSubscribing(false);
       setNewsletterEmail('');
-      toast.success('Thank you for subscribing to TechNest Insider deals!');
+      toast.success('Thank you for subscribing to TechNest Insider updates!');
     }, 800);
   };
 
@@ -257,7 +264,8 @@ export const HomePage: React.FC = () => {
     if (lower.includes('phone') || lower.includes('mobile')) return Smartphone;
     if (lower.includes('audio') || lower.includes('headphone')) return Headphones;
     if (lower.includes('monitor') || lower.includes('display')) return Tv;
-    if (lower.includes('wearable') || lower.includes('watch')) return Watch;
+    if (lower.includes('watch')) return Watch;
+    if (lower.includes('gaming') || lower.includes('accessory')) return Gamepad2;
     return Cpu;
   };
 
@@ -268,6 +276,7 @@ export const HomePage: React.FC = () => {
         description="Discover cutting-edge laptops, smartphones, PC components, audio gear, and accessories at TechNest."
         canonicalUrl={window.location.origin}
       />
+
       {/* 1. HERO CAROUSEL */}
       <section
         aria-label="Featured Electronics Showcase"
@@ -312,7 +321,7 @@ export const HomePage: React.FC = () => {
                         size="lg"
                         onClick={() => navigate(slide.ctaLink)}
                         rightIcon={<ArrowRight className="w-5 h-5" />}
-                        className="shadow-xl"
+                        className="shadow-xl cursor-pointer"
                       >
                         {slide.ctaText}
                       </Button>
@@ -320,9 +329,9 @@ export const HomePage: React.FC = () => {
                         variant="outline"
                         size="lg"
                         onClick={() => navigate('/products')}
-                        className="text-white border-slate-700 hover:border-brand-400"
+                        className="text-white border-slate-700 hover:border-brand-400 cursor-pointer"
                       >
-                        All Catalog
+                        Explore Products
                       </Button>
                     </div>
                   </div>
@@ -430,22 +439,22 @@ export const HomePage: React.FC = () => {
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4">
             {categories.map((cat) => {
               const Icon = getCategoryIcon(cat.name);
               return (
                 <button
                   key={cat.id}
                   onClick={() => navigate(`/products?categoryId=${cat.id}`)}
-                  className="group p-5 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-brand-500 dark:hover:border-brand-400 shadow-sm hover:shadow-lg transition-all flex flex-col items-center text-center cursor-pointer"
+                  className="group p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-brand-500 dark:hover:border-brand-400 shadow-sm hover:shadow-lg transition-all flex flex-col items-center text-center cursor-pointer"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 group-hover:bg-brand-50 dark:group-hover:bg-brand-500/10 border border-slate-200 dark:border-slate-700/80 group-hover:border-brand-300 dark:group-hover:border-brand-500/30 flex items-center justify-center text-slate-700 dark:text-slate-300 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors mb-3">
+                  <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 group-hover:bg-brand-50 dark:group-hover:bg-brand-500/10 border border-slate-200 dark:border-slate-700/80 group-hover:border-brand-300 dark:group-hover:border-brand-500/30 flex items-center justify-center text-slate-700 dark:text-slate-300 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors mb-2.5">
                     <Icon className="w-6 h-6" />
                   </div>
                   <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors line-clamp-1">
                     {cat.name}
                   </span>
-                  <span className="text-[10px] text-slate-400 mt-1">Browse Catalog</span>
+                  <span className="text-[10px] text-slate-400 mt-0.5">Explore</span>
                 </button>
               );
             })}
@@ -453,7 +462,7 @@ export const HomePage: React.FC = () => {
         </section>
       )}
 
-      {/* 4. FLASH DEALS WITH COUNTDOWN */}
+      {/* 4. FLASH DEALS */}
       {flashProducts.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 border border-slate-800 p-6 sm:p-10 shadow-2xl space-y-8">
@@ -507,7 +516,7 @@ export const HomePage: React.FC = () => {
         </section>
       )}
 
-      {/* 5. FEATURED / NEW / BEST SELLERS SHOWCASE */}
+      {/* 5. FEATURED PRODUCTS SHOWCASE */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full space-y-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
@@ -515,7 +524,7 @@ export const HomePage: React.FC = () => {
               <TrendingUp className="w-3.5 h-3.5" /> Curated Flagships
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-              Featured Tech Gear
+              Featured Products
             </h2>
           </div>
 
@@ -534,6 +543,17 @@ export const HomePage: React.FC = () => {
             </button>
             <button
               type="button"
+              onClick={() => setActiveTab('rated')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'rated'
+                  ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Top Rated
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveTab('new')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'new'
@@ -542,17 +562,6 @@ export const HomePage: React.FC = () => {
               }`}
             >
               New Arrivals
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('best')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'best'
-                  ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Best Sellers
             </button>
           </div>
         </div>
@@ -574,13 +583,99 @@ export const HomePage: React.FC = () => {
             size="lg"
             onClick={() => navigate('/products')}
             rightIcon={<ArrowRight className="w-4 h-4" />}
+            className="cursor-pointer"
           >
             Explore Complete Inventory ({showcaseProducts.length}+ Items)
           </Button>
         </div>
       </section>
 
-      {/* 6. BRANDS SHOWCASE */}
+      {/* 6. PROMOTIONAL BANNERS (GAMING & ACCESSORIES) */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Banner A: Gaming */}
+          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-purple-900 via-indigo-950 to-slate-900 p-8 sm:p-10 border border-purple-800/40 shadow-xl flex flex-col justify-between min-h-[280px]">
+            <div className="space-y-3 z-10 max-w-sm">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 font-bold text-xs uppercase tracking-wider border border-purple-500/30">
+                <Gamepad2 className="w-3.5 h-3.5" /> High Performance Rigs
+              </span>
+              <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                Level Up Your Gaming Experience
+              </h3>
+              <p className="text-xs sm:text-sm text-purple-200/80">
+                Ultra-fast refresh displays, mechanical keyboards, and surround audio for competitive dominance.
+              </p>
+            </div>
+            <div className="pt-6 z-10">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => navigate('/products?search=Gaming')}
+                rightIcon={<ArrowRight className="w-4 h-4" />}
+                className="bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-600/30 cursor-pointer"
+              >
+                Shop Gaming Gear
+              </Button>
+            </div>
+          </div>
+
+          {/* Banner B: Accessories */}
+          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-cyan-900 via-slate-950 to-blue-950 p-8 sm:p-10 border border-cyan-800/40 shadow-xl flex flex-col justify-between min-h-[280px]">
+            <div className="space-y-3 z-10 max-w-sm">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 font-bold text-xs uppercase tracking-wider border border-cyan-500/30">
+                <Package className="w-3.5 h-3.5" /> Essential Add-ons
+              </span>
+              <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                Small Accessories, Big Difference
+              </h3>
+              <p className="text-xs sm:text-sm text-cyan-200/80">
+                Power banks, multi-port USB-C hubs, ergonomic mice, and precision tech cables for your desk.
+              </p>
+            </div>
+            <div className="pt-6 z-10">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => navigate('/products?search=Accessories')}
+                rightIcon={<ArrowRight className="w-4 h-4" />}
+                className="bg-cyan-600 hover:bg-cyan-700 shadow-lg shadow-cyan-600/30 cursor-pointer"
+              >
+                Explore Accessories
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. NEW ARRIVALS */}
+      {newArrivals.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div>
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider mb-1">
+                <Sparkles className="w-3.5 h-3.5" /> Latest Releases
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                New Arrivals
+              </h2>
+            </div>
+            <Link
+              to="/products"
+              className="text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 self-start sm:self-auto"
+            >
+              See All New Gear <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {newArrivals.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 8. BRANDS SHOWCASE */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full space-y-6">
         <div className="text-center space-y-1">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Authorized Brand Partners</p>
@@ -600,28 +695,28 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 7. STUDENT & TECH PRO DISCOUNT BANNER */}
+      {/* 9. REAL ACTIVE PROMOTION / COUPON BANNER */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-brand-600 via-indigo-600 to-blue-700 p-8 sm:p-12 text-white shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="space-y-3 text-center md:text-left max-w-xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white font-semibold text-xs uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Student & Educator Advantage
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Limited Time Storewide Offer
             </div>
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight">
               Get 10% Off All Hardware Orders
             </h2>
             <p className="text-sm text-blue-100 leading-relaxed">
-              Equip your academic and professional tech workspace with discounted monitors, laptops, and precision accessories.
+              Equip your workstation with monitors, laptops, and precision accessories using active coupon code <strong className="text-amber-300">NEWYEAR</strong> at checkout.
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-3 bg-white/10 backdrop-blur-xl border border-white/20 p-3 rounded-2xl shadow-lg">
             <span className="font-mono font-black text-xl tracking-wider text-amber-300 px-3">
-              TECHNEST10
+              NEWYEAR
             </span>
             <button
               type="button"
-              onClick={() => handleCopyCoupon('TECHNEST10')}
+              onClick={() => handleCopyCoupon('NEWYEAR')}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-brand-700 hover:bg-blue-50 font-bold text-xs transition-colors shadow-sm cursor-pointer"
             >
               {copiedCoupon ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
@@ -631,7 +726,7 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 8. CUSTOMER REVIEWS & TESTIMONIALS */}
+      {/* 10. CUSTOMER REVIEWS & TESTIMONIALS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full space-y-8">
         <div className="text-center space-y-1">
           <div className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider">
@@ -664,7 +759,6 @@ export const HomePage: React.FC = () => {
                 <div>
                   <h4 className="font-bold text-slate-900 dark:text-white text-xs">{t.name}</h4>
                   <p className="text-[11px] text-slate-400">{t.role}</p>
-                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">{t.date}</p>
                 </div>
               </div>
             </div>
@@ -672,7 +766,7 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 9. NEWSLETTER SUBSCRIPTION */}
+      {/* 11. NEWSLETTER SUBSCRIPTION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 sm:p-12 text-center shadow-lg space-y-6 max-w-3xl mx-auto">
           <div className="w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/20 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto">
@@ -694,14 +788,14 @@ export const HomePage: React.FC = () => {
               required
               value={newsletterEmail}
               onChange={(e) => setNewsletterEmail(e.target.value)}
-              placeholder="Enter your work or personal email..."
+              placeholder="Enter your email..."
               className="flex-1 px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:border-brand-500 outline-none"
             />
             <Button
               type="submit"
               variant="primary"
               isLoading={isSubscribing}
-              className="px-6 py-3 font-bold text-xs sm:text-sm"
+              className="px-6 py-3 font-bold text-xs sm:text-sm cursor-pointer"
             >
               Join Club
             </Button>
