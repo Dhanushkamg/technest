@@ -363,11 +363,12 @@ public class PayHereService {
                 order.setStatus(OrderStatus.CONFIRMED);
                 orderRepository.save(order);
                 paymentRepository.save(payment);
-                notificationService.createNotification(
+                notificationService.createNotificationIdempotent(
                         user,
                         NotificationType.PAYMENT_SUCCESS,
                         "Payment of " + payment.getAmount() + " for order #" + order.getId()
-                                + " via PayHere was successful."
+                                + " via PayHere was successful.",
+                        "PAYMENT_SUCCESS_" + order.getId()
                 );
                 log.info("PayHere payment SUCCESS recorded for order={}", order.getId());
                 return true;
@@ -390,10 +391,11 @@ public class PayHereService {
                 if (payment.getStatus() != PaymentStatus.FAILED) {
                     payment.setStatus(PaymentStatus.FAILED);
                     paymentRepository.save(payment);
-                    notificationService.createNotification(
+                    notificationService.createNotificationIdempotent(
                             user,
                             NotificationType.PAYMENT_FAILED,
-                            "Payment for order #" + order.getId() + " via PayHere was cancelled."
+                            "Payment for order #" + order.getId() + " via PayHere was cancelled.",
+                            "PAYMENT_CANCELLED_" + order.getId()
                     );
                     log.info("PayHere payment CANCELLED recorded for order={}", order.getId());
                 }
@@ -410,10 +412,11 @@ public class PayHereService {
                 if (payment.getStatus() != PaymentStatus.FAILED) {
                     payment.setStatus(PaymentStatus.FAILED);
                     paymentRepository.save(payment);
-                    notificationService.createNotification(
+                    notificationService.createNotificationIdempotent(
                             user,
                             NotificationType.PAYMENT_FAILED,
-                            "Payment for order #" + order.getId() + " via PayHere failed."
+                            "Payment for order #" + order.getId() + " via PayHere failed.",
+                            "PAYMENT_FAILED_" + order.getId()
                     );
                     log.info("PayHere payment FAILED recorded for order={}", order.getId());
                 }
@@ -429,10 +432,11 @@ public class PayHereService {
                 }
                 payment.setStatus(PaymentStatus.REFUNDED);
                 paymentRepository.save(payment);
-                notificationService.createNotification(
+                notificationService.createNotificationIdempotent(
                         user,
                         NotificationType.REFUND_PROCESSED,
-                        "A chargeback has been processed for order #" + order.getId() + " via PayHere."
+                        "A chargeback has been processed for order #" + order.getId() + " via PayHere.",
+                        "PAYMENT_CHARGEDBACK_" + order.getId()
                 );
                 log.info("PayHere CHARGEDBACK recorded as REFUNDED for order={}", order.getId());
                 return false;

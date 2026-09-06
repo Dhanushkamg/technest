@@ -148,12 +148,13 @@ class OrderCancellationServiceTest {
         assertThat(product2.getStock()).isEqualTo(22); // 20 + 2
 
         // Verify notification triggered
-        verify(notificationService).createNotification(
+        verify(notificationService).createNotificationIdempotent(
                 eq(customer),
                 eq(NotificationType.ORDER_CANCELLED),
-                contains("Your order #1 has been cancelled.")
+                contains("Your order #1 has been cancelled."),
+                anyString()
         );
-        verify(notificationService, never()).createNotification(any(), eq(NotificationType.REFUND_PROCESSED), any());
+        verify(notificationService, never()).createNotificationIdempotent(any(), eq(NotificationType.REFUND_PROCESSED), any(), anyString());
     }
 
     @Test
@@ -180,15 +181,17 @@ class OrderCancellationServiceTest {
         verify(paymentRepository).save(payment);
 
         // Verify refund and cancellation notifications
-        verify(notificationService).createNotification(
+        verify(notificationService).createNotificationIdempotent(
                 eq(customer),
                 eq(NotificationType.REFUND_PROCESSED),
-                contains("Refund of 1100 for order #1 has been processed.")
+                contains("Refund of 1100 for order #1 has been processed."),
+                anyString()
         );
-        verify(notificationService).createNotification(
+        verify(notificationService).createNotificationIdempotent(
                 eq(customer),
                 eq(NotificationType.ORDER_CANCELLED),
-                contains("Your order #1 has been cancelled.")
+                contains("Your order #1 has been cancelled."),
+                anyString()
         );
     }
 

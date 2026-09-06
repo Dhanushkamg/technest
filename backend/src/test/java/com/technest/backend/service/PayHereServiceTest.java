@@ -318,7 +318,7 @@ class PayHereServiceTest {
         assertThat(result).isTrue();
         assertThat(pendingPayment.getStatus()).isEqualTo(PaymentStatus.SUCCESS);
         assertThat(testOrder.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
-        verify(notificationService).createNotification(eq(testUser), eq(NotificationType.PAYMENT_SUCCESS), any());
+        verify(notificationService).createNotificationIdempotent(eq(testUser), eq(NotificationType.PAYMENT_SUCCESS), any(), anyString());
     }
 
     // =========================================================================
@@ -359,7 +359,7 @@ class PayHereServiceTest {
 
         assertThat(result).isFalse();
         assertThat(pendingPayment.getStatus()).isEqualTo(PaymentStatus.FAILED);
-        verify(notificationService).createNotification(eq(testUser), eq(NotificationType.PAYMENT_FAILED), any());
+        verify(notificationService).createNotificationIdempotent(eq(testUser), eq(NotificationType.PAYMENT_FAILED), any(), anyString());
     }
 
     @Test
@@ -397,7 +397,7 @@ class PayHereServiceTest {
 
         assertThat(result).isFalse();
         assertThat(pendingPayment.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
-        verify(notificationService).createNotification(eq(testUser), eq(NotificationType.REFUND_PROCESSED), any());
+        verify(notificationService).createNotificationIdempotent(eq(testUser), eq(NotificationType.REFUND_PROCESSED), any(), anyString());
     }
 
     // =========================================================================

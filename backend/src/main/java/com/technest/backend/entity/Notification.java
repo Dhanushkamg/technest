@@ -38,6 +38,9 @@ public class Notification {
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(unique = true)
+    private String deduplicationKey;
+
     public Notification() {
     }
 
@@ -87,5 +90,13 @@ public class Notification {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getDeduplicationKey() {
+        return deduplicationKey;
+    }
+
+    public void setDeduplicationKey(String deduplicationKey) {
+        this.deduplicationKey = deduplicationKey;
     }
 }

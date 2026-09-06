@@ -187,7 +187,7 @@ class PaymentServiceTest {
         assertThat(testOrder.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
         verify(orderRepository).save(testOrder);
         verify(paymentRepository).save(pendingPayment);
-        verify(notificationService).createNotification(eq(testUser), eq(NotificationType.PAYMENT_SUCCESS), any());
+        verify(notificationService).createNotificationIdempotent(eq(testUser), eq(NotificationType.PAYMENT_SUCCESS), any(), anyString());
     }
 
     @Test
@@ -203,7 +203,7 @@ class PaymentServiceTest {
         assertThat(testOrder.getStatus()).isEqualTo(OrderStatus.PENDING); // Order remains pending
         verify(orderRepository, never()).save(testOrder);
         verify(paymentRepository).save(pendingPayment);
-        verify(notificationService).createNotification(eq(testUser), eq(NotificationType.PAYMENT_FAILED), any());
+        verify(notificationService).createNotificationIdempotent(eq(testUser), eq(NotificationType.PAYMENT_FAILED), any(), anyString());
     }
 
     @Test

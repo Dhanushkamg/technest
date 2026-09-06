@@ -109,7 +109,7 @@ class OrderServiceCheckoutTest {
     @Test
     void checkout_withExplicitAddress_success() {
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
         mockProductLock(product);
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> {
@@ -128,7 +128,7 @@ class OrderServiceCheckoutTest {
     @Test
     void checkout_withoutAddressId_usesDefaultAddress_success() {
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findByUserIdAndIsDefaultTrue(1L)).thenReturn(List.of(address));
         mockProductLock(product);
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> {
@@ -146,7 +146,7 @@ class OrderServiceCheckoutTest {
     @Test
     void checkout_withoutAddressId_noAddressesExist_throwsBadRequest() {
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findByUserIdAndIsDefaultTrue(1L)).thenReturn(List.of());
 
         assertThatThrownBy(() -> orderService.checkout("user@example.com", null, null))
@@ -159,7 +159,7 @@ class OrderServiceCheckoutTest {
         address.setUser(otherUser);
 
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
 
         assertThatThrownBy(() -> orderService.checkout("user@example.com", 100L, null))
@@ -170,7 +170,7 @@ class OrderServiceCheckoutTest {
     @Test
     void checkout_withAddressId_addressNotFound_throwsResourceNotFound() {
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> orderService.checkout("user@example.com", 999L, null))
@@ -187,7 +187,7 @@ class OrderServiceCheckoutTest {
         product.setStock(1); // Only 1 in stock, cart requests 2
 
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
         mockProductLock(product);
 
@@ -206,7 +206,7 @@ class OrderServiceCheckoutTest {
         product.setStock(2); // Exactly what cart requests
 
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
         mockProductLock(product);
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> {
@@ -225,7 +225,7 @@ class OrderServiceCheckoutTest {
     void checkout_success_stockReducedCorrectly() {
         // product has stock=5, cart item quantity=2 => stock should be 3 after
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
         mockProductLock(product);
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> {
@@ -259,7 +259,7 @@ class OrderServiceCheckoutTest {
         cart.getItems().add(item2);
 
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
         when(productRepository.findByIdWithLock(10L)).thenReturn(Optional.of(product));
         when(productRepository.findByIdWithLock(20L)).thenReturn(Optional.of(product2));
@@ -294,7 +294,7 @@ class OrderServiceCheckoutTest {
         cart.getItems().add(item2);
 
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
         // Both products are locked; second one fails validation
         when(productRepository.findByIdWithLock(10L)).thenReturn(Optional.of(product));
@@ -316,7 +316,7 @@ class OrderServiceCheckoutTest {
         product.setStock(1);
 
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
         mockProductLock(product);
 
@@ -331,7 +331,7 @@ class OrderServiceCheckoutTest {
     @Test
     void checkout_usesLockingMechanism_findByIdWithLockCalled() {
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
         mockProductLock(product);
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> {
@@ -354,7 +354,7 @@ class OrderServiceCheckoutTest {
     @Test
     void checkout_withValidPercentageCoupon_appliesDiscount() {
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
         mockProductLock(product);
 
@@ -380,7 +380,7 @@ class OrderServiceCheckoutTest {
     @Test
     void checkout_withValidFixedAmountCoupon_appliesDiscount() {
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
         mockProductLock(product);
 
@@ -406,7 +406,7 @@ class OrderServiceCheckoutTest {
     @Test
     void checkout_withFixedAmountExceedingSubtotal_capsDiscountToSubtotal() {
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
         mockProductLock(product);
 
@@ -430,7 +430,7 @@ class OrderServiceCheckoutTest {
     @Test
     void checkout_withInactiveCoupon_throwsBadRequest() {
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
         mockProductLock(product);
 
@@ -448,7 +448,7 @@ class OrderServiceCheckoutTest {
     @Test
     void checkout_withUsageLimitReached_throwsBadRequest() {
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
         mockProductLock(product);
 
@@ -470,7 +470,7 @@ class OrderServiceCheckoutTest {
         product.setStock(1); // Not enough stock
 
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
         when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
         mockProductLock(product);
 

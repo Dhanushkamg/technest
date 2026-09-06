@@ -111,19 +111,21 @@ public class PaymentService {
             orderRepository.save(order);
             paymentRepository.save(payment);
 
-            notificationService.createNotification(
-                    user,
+            notificationService.createNotificationIdempotent(
+                    order.getUser(),
                     NotificationType.PAYMENT_SUCCESS,
-                    "Payment of " + payment.getAmount() + " for order #" + order.getId() + " was successful."
+                    "Payment of " + payment.getAmount() + " for order #" + order.getId() + " was successful.",
+                    "PAYMENT_SUCCESS_ORDER_" + order.getId()
             );
         } else {
             payment.setStatus(PaymentStatus.FAILED);
             paymentRepository.save(payment);
 
-            notificationService.createNotification(
-                    user,
+            notificationService.createNotificationIdempotent(
+                    order.getUser(),
                     NotificationType.PAYMENT_FAILED,
-                    "Payment of " + payment.getAmount() + " for order #" + order.getId() + " failed. Please try again."
+                    "Payment of " + payment.getAmount() + " for order #" + order.getId() + " failed. Please try again.",
+                    "PAYMENT_FAILED_ORDER_" + order.getId()
             );
         }
 
@@ -177,16 +179,18 @@ public class PaymentService {
 
         // Notify user based on payment outcome
         if (savedPayment.getStatus() == PaymentStatus.SUCCESS) {
-            notificationService.createNotification(
-                    user,
+            notificationService.createNotificationIdempotent(
+                    order.getUser(),
                     NotificationType.PAYMENT_SUCCESS,
-                    "Payment of " + savedPayment.getAmount() + " for order #" + order.getId() + " was successful."
+                    "Payment of " + savedPayment.getAmount() + " for order #" + order.getId() + " was successful.",
+                    "PAYMENT_SUCCESS_ORDER_" + order.getId()
             );
         } else {
-            notificationService.createNotification(
-                    user,
+            notificationService.createNotificationIdempotent(
+                    order.getUser(),
                     NotificationType.PAYMENT_FAILED,
-                    "Payment of " + savedPayment.getAmount() + " for order #" + order.getId() + " failed. Please try again."
+                    "Payment of " + savedPayment.getAmount() + " for order #" + order.getId() + " failed. Please try again.",
+                    "PAYMENT_FAILED_ORDER_" + order.getId()
             );
         }
 

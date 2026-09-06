@@ -122,6 +122,23 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ApiError> handleOptimisticLockingFailureException(
+            org.springframework.orm.ObjectOptimisticLockingFailureException exception,
+            HttpServletRequest request) {
+
+        ApiError error = new ApiError(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                HttpStatus.CONFLICT.getReasonPhrase(),
+                "Another update was made. Please refresh and try again.",
+                request.getRequestURI());
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(error);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGenericException(
             Exception exception,

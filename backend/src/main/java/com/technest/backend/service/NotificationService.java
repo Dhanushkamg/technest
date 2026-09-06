@@ -32,11 +32,21 @@ public class NotificationService {
      */
     @Transactional
     public void createNotification(User user, NotificationType type, String message) {
-        Notification notification = new Notification();
-        notification.setUser(user);
-        notification.setType(type);
-        notification.setMessage(message);
-        notificationRepository.save(notification);
+        createNotificationIdempotent(user, type, message, null);
+    }
+
+    @Transactional
+    public void createNotificationIdempotent(User user, NotificationType type, String message, String deduplicationKey) {
+        try {
+            Notification notification = new Notification();
+            notification.setUser(user);
+            notification.setType(type);
+            notification.setMessage(message);
+            notification.setDeduplicationKey(deduplicationKey);
+            notificationRepository.saveAndFlush(notification);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // Duplicate notification, ignore
+        }
     }
 
     @Transactional(readOnly = true)

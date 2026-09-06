@@ -78,7 +78,7 @@ public class OrderService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        Cart cart = cartRepository.findByUser(user)
+        Cart cart = cartRepository.findByUserWithLock(user)
                 .orElseThrow(() -> new BadRequestException("Cart is empty"));
 
         if (cart.getItems().isEmpty()) {
@@ -230,10 +230,11 @@ public class OrderService {
         cartRepository.save(cart);
 
         // Notify user
-        notificationService.createNotification(
+        notificationService.createNotificationIdempotent(
                 user,
                 NotificationType.ORDER_CREATED,
-                "Your order #" + savedOrder.getId() + " has been placed successfully."
+                "Your order #" + savedOrder.getId() + " has been placed successfully.",
+                "ORDER_CREATED_" + savedOrder.getId()
         );
 
         return mapToDto(savedOrder);
@@ -378,12 +379,23 @@ public class OrderService {
             if (payment.getStatus() == PaymentStatus.SUCCESS) {
                 payment.setStatus(PaymentStatus.REFUNDED);
                 paymentRepository.save(payment);
-                notificationService.createNotification(
+                notificationService.createNotificationIdempotent(
                         order.getUser(),
                         com.technest.backend.entity.NotificationType.REFUND_PROCESSED,
-                        "Refund of " + payment.getAmount() + " for order #" + order.getId() + " has been processed."
+                        "Refund of " + payment.getAmount() + " for order #" + order.getId() + " has been processed.",
+                        "REFUND_PROCESSED_ORDER_" + order.getId()
                 );
             }
+        }
+
+        // Restore coupon usage if any
+        if (order.getCouponCode() != null) {
+            couponRepository.findByCodeWithLock(order.getCouponCode().toUpperCase()).ifPresent(coupon -> {
+                if (coupon.getUsageCount() > 0) {
+                    coupon.setUsageCount(coupon.getUsageCount() - 1);
+                    couponRepository.save(coupon);
+                }
+            });
         }
 
         // Update order status to CANCELLED
@@ -391,10 +403,11 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
 
         // Notify user about order cancellation
-        notificationService.createNotification(
+        notificationService.createNotificationIdempotent(
                 order.getUser(),
                 com.technest.backend.entity.NotificationType.ORDER_CANCELLED,
-                "Your order #" + savedOrder.getId() + " has been cancelled."
+                "Your order #" + savedOrder.getId() + " has been cancelled.",
+                "ORDER_CANCELLED_" + savedOrder.getId()
         );
 
         return mapToDto(savedOrder);

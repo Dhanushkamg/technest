@@ -75,9 +75,9 @@ class NotificationServiceTest {
 
     @Test
     void createNotification_savesNotification() {
-        notificationService.createNotification(user, NotificationType.ORDER_CREATED, "Test message");
+        notificationService.createNotificationIdempotent(user, NotificationType.ORDER_CREATED, "Test message", "test_key");
 
-        verify(notificationRepository, times(1)).save(any(Notification.class));
+        verify(notificationRepository, times(1)).saveAndFlush(any(Notification.class));
     }
 
     // -------------------------------------------------------

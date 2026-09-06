@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,6 +22,9 @@ public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Version
+    private Long version;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "order_id", nullable = false)
