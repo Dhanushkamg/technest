@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -8,6 +8,9 @@ import {
   MapPin,
   Calendar,
   CreditCard,
+  Loader2,
+  Clock,
+  AlertCircle,
 } from 'lucide-react';
 import { useOrderDetails } from '../../hooks/useOrderDetails';
 import { usePayment } from '../../hooks/usePayment';
@@ -21,15 +24,34 @@ export const OrderSuccessPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const numericOrderId = Number(orderId);
 
-  const { data: order, isLoading, isError } = useOrderDetails(numericOrderId);
-  const { payments } = usePayment(numericOrderId);
+  const { data: order, isLoading, isError, refetch: refetchOrder } = useOrderDetails(numericOrderId);
+  const { payments, refetch: refetchPayments } = usePayment(numericOrderId);
+
+  const [pollCount, setPollCount] = useState(0);
+  const isTimedOut = pollCount >= 12;
 
   const latestPayment = payments && payments.length > 0 ? payments[payments.length - 1] : null;
+  const isPayHere = latestPayment?.paymentMethod === 'PAYHERE';
   const paymentStatus = latestPayment
     ? latestPayment.status
     : (order && (order.status === 'CONFIRMED' || order.status === 'SHIPPED' || order.status === 'DELIVERED'))
     ? 'SUCCESS'
     : 'PENDING';
+
+  // Polling for PayHere pending transactions: 5s interval, max 12 attempts (60s total)
+  useEffect(() => {
+    if (!isPayHere || paymentStatus !== 'PENDING' || order?.status !== 'PENDING' || pollCount >= 12) {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      refetchPayments();
+      refetchOrder();
+      setPollCount((prev) => prev + 1);
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [isPayHere, paymentStatus, order?.status, pollCount, refetchPayments, refetchOrder]);
 
   if (isLoading) {
     return (
@@ -59,30 +81,70 @@ export const OrderSuccessPage: React.FC = () => {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
-      {/* Success Celebration Card */}
+      {/* Status Card */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-8 shadow-md dark:shadow-2xl text-center mb-8 relative overflow-hidden"
       >
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
-
-        {/* Animated Checkmark */}
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: 'spring', damping: 12, stiffness: 200 }}
-          className="w-20 h-20 rounded-3xl bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-500/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/10 dark:shadow-emerald-500/20"
-        >
-          <CheckCircle2 className="w-10 h-10" />
-        </motion.div>
-
-        <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
-          Order Confirmed!
-        </h1>
-        <p className="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto mb-6">
-          Thank you for shopping with TechNest. Your order has been placed and is currently being processed.
-        </p>
+        {paymentStatus === 'FAILED' ? (
+          <>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-rose-500/5 dark:bg-rose-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+            <div className="w-20 h-20 rounded-3xl bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-500/40 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-rose-500/10 dark:shadow-rose-500/20">
+              <AlertCircle className="w-10 h-10" />
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
+              Payment Failed
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto mb-6">
+              Your payment transaction could not be completed. Please review your order or attempt payment again.
+            </p>
+          </>
+        ) : isPayHere && paymentStatus === 'PENDING' && !isTimedOut ? (
+          <>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 dark:bg-amber-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+            <div className="w-20 h-20 rounded-3xl bg-amber-50 dark:bg-amber-950/80 border border-amber-200 dark:border-amber-500/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-amber-500/10 dark:shadow-amber-500/20">
+              <Loader2 className="w-10 h-10 animate-spin" />
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
+              Awaiting Payment Confirmation
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto mb-6">
+              Your PayHere transaction was submitted. We are waiting for the payment gateway webhook to confirm your transaction (Checking status automatically...).
+            </p>
+          </>
+        ) : isPayHere && paymentStatus === 'PENDING' && isTimedOut ? (
+          <>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 dark:bg-amber-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+            <div className="w-20 h-20 rounded-3xl bg-amber-50 dark:bg-amber-950/80 border border-amber-200 dark:border-amber-500/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-amber-500/10 dark:shadow-amber-500/20">
+              <Clock className="w-10 h-10" />
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
+              Payment Confirmation Pending
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto mb-6">
+              Your order has been recorded. The gateway confirmation is taking a little longer than usual. You can check your order status later on your orders page.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', damping: 12, stiffness: 200 }}
+              className="w-20 h-20 rounded-3xl bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-500/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/10 dark:shadow-emerald-500/20"
+            >
+              <CheckCircle2 className="w-10 h-10" />
+            </motion.div>
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
+              Order Confirmed!
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto mb-6">
+              Thank you for shopping with TechNest. Your order has been placed and is currently being processed.
+            </p>
+          </>
+        )}
 
         {/* Order Meta Bar */}
         <div className="inline-flex flex-wrap items-center justify-center gap-4 px-5 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-xs">

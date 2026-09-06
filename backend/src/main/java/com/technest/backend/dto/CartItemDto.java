@@ -8,6 +8,7 @@ public class CartItemDto {
     private String productName;
     private BigDecimal price;
     private Integer quantity;
+    private Integer stockQuantity;
 
     public CartItemDto() {
     }
@@ -18,6 +19,15 @@ public class CartItemDto {
         this.productName = productName;
         this.price = price;
         this.quantity = quantity;
+    }
+
+    public CartItemDto(Long id, Long productId, String productName, BigDecimal price, Integer quantity, Integer stockQuantity) {
+        this.id = id;
+        this.productId = productId;
+        this.productName = productName;
+        this.price = price;
+        this.quantity = quantity;
+        this.stockQuantity = stockQuantity;
     }
 
     public Long getId() {
@@ -58,5 +68,13 @@ public class CartItemDto {
 
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
+    }
+
+    public Integer getStockQuantity() {
+        return stockQuantity;
+    }
+
+    public void setStockQuantity(Integer stockQuantity) {
+        this.stockQuantity = stockQuantity;
     }
 }

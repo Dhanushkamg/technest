@@ -10,3 +10,4 @@ export * from './notification';
 export * from './dashboard';
 export * from './address';
 export * from './coupon';
+export * from './couponValidation';

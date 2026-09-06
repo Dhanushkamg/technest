@@ -32,10 +32,16 @@ const CartItemRow: React.FC<{
   const [localQty, setLocalQty] = useState(item.quantity);
   const imageUrl = getProductImage({ id: item.productId, name: item.productName });
   const subtotal = (Number(item.price) * item.quantity).toFixed(2);
+  const maxStock = item.stockQuantity;
+  const isAtMaxStock = maxStock !== undefined && localQty >= maxStock;
   const isDisabled = isUpdating || isRemoving;
 
   const handleQtyChange = async (newQty: number) => {
     if (newQty < 1 || newQty === item.quantity) return;
+    if (maxStock !== undefined && newQty > maxStock) {
+      toast.error(`Only ${maxStock} items available in stock`);
+      return;
+    }
     setLocalQty(newQty);
     try {
       await onUpdate(item.id, newQty);
@@ -76,7 +82,19 @@ const CartItemRow: React.FC<{
       <div className="flex-1 flex flex-col justify-between gap-3">
         <div>
           <p className="text-base font-bold text-slate-900 dark:text-slate-100">{item.productName}</p>
-          <p className="text-xs text-brand-600 dark:text-brand-400 mt-0.5">Unit price: ${Number(item.price).toFixed(2)}</p>
+          <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+            <span className="text-xs text-brand-600 dark:text-brand-400">Unit price: ${Number(item.price).toFixed(2)}</span>
+            {maxStock !== undefined && maxStock <= 5 && maxStock > 0 && (
+              <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                Only {maxStock} left in stock
+              </span>
+            )}
+            {maxStock !== undefined && maxStock === 0 && (
+              <span className="text-xs text-red-600 dark:text-red-400 font-medium">
+                Out of stock
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -101,7 +119,7 @@ const CartItemRow: React.FC<{
 
             <button
               onClick={() => handleQtyChange(localQty + 1)}
-              disabled={isDisabled}
+              disabled={isDisabled || isAtMaxStock}
               aria-label="Increase quantity"
               className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >

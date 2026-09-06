@@ -20,11 +20,12 @@ import { toast } from 'sonner';
 import { authApi } from '../../api/authApi';
 import { orderApi } from '../../api/orderApi';
 import { paymentApi } from '../../api/paymentApi';
+import { couponApi } from '../../api/couponApi';
 import { useCart } from '../../hooks/useCart';
 import { useCartStore } from '../../store/useCartStore';
 import axios, { type AxiosError } from 'axios';
 import { getProductImage } from '../../utils/productImages';
-import type { Address } from '../../types';
+import type { Address, CouponValidateResponse } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 
@@ -38,7 +39,8 @@ export const CheckoutPage: React.FC = () => {
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'PAYHERE' | 'CREDIT_CARD' | 'CASH_ON_DELIVERY' | 'PAYPAL'>('PAYHERE');
   const [couponCodeInput, setCouponCodeInput] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [validatedCoupon, setValidatedCoupon] = useState<CouponValidateResponse | null>(null);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   // New Address Form Modal State
@@ -115,17 +117,36 @@ export const CheckoutPage: React.FC = () => {
 
   const cartItems = cart?.items || [];
   const subtotal = cartItems.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
+  const discountAmount = validatedCoupon?.valid ? (validatedCoupon.discountAmount ?? 0) : 0;
+  const totalDue = Math.max(0, subtotal - discountAmount);
 
-  // Apply Coupon (local state check)
-  const handleApplyCoupon = (e: React.FormEvent) => {
+  // Apply Coupon (authoritative server validation preview)
+  const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!couponCodeInput.trim()) return;
-    setAppliedCoupon(couponCodeInput.trim().toUpperCase());
-    toast.success(`Coupon "${couponCodeInput.trim().toUpperCase()}" applied!`);
+    const code = couponCodeInput.trim();
+    if (!code) return;
+
+    setIsValidatingCoupon(true);
+    try {
+      const result = await couponApi.validateCoupon(code, subtotal);
+      if (result.valid) {
+        setValidatedCoupon(result);
+        toast.success(result.message || `Coupon "${result.code}" applied!`);
+      } else {
+        setValidatedCoupon(null);
+        toast.error(result.message || 'Invalid coupon code');
+      }
+    } catch (err) {
+      setValidatedCoupon(null);
+      const msg = (axios.isAxiosError(err) ? (err.response?.data as { message?: string })?.message : undefined) || 'Failed to validate coupon';
+      toast.error(msg);
+    } finally {
+      setIsValidatingCoupon(false);
+    }
   };
 
   const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
+    setValidatedCoupon(null);
     setCouponCodeInput('');
     toast.info('Coupon removed.');
   };
@@ -145,11 +166,13 @@ export const CheckoutPage: React.FC = () => {
     setIsPlacingOrder(true);
 
     try {
+      const appliedCode = validatedCoupon?.valid ? validatedCoupon.code : undefined;
+
       if (paymentMethod === 'PAYHERE') {
         // 1. Create Backend Order
         const order = await orderApi.createOrder({
           addressId: activeAddressId,
-          couponCode: appliedCoupon || undefined,
+          couponCode: appliedCode,
         });
 
         // 2. Request PayHere Checkout Configuration from Backend
@@ -164,7 +187,7 @@ export const CheckoutPage: React.FC = () => {
 
         // 4. Setup PayHere callbacks
         window.payhere.onCompleted = () => {
-          toast.success('PayHere checkout process completed!');
+          toast.info('Payment processing. Awaiting backend confirmation...');
           queryClient.invalidateQueries({ queryKey: ['cart'] });
           queryClient.invalidateQueries({ queryKey: ['orders'] });
           updateCartCount(0);
@@ -172,7 +195,7 @@ export const CheckoutPage: React.FC = () => {
         };
 
         window.payhere.onDismissed = () => {
-          toast.warning('PayHere checkout popup was closed.');
+          toast.warning('PayHere payment popup closed.');
           setIsPlacingOrder(false);
           navigate(`/orders/${order.id}`);
         };
@@ -208,7 +231,7 @@ export const CheckoutPage: React.FC = () => {
       // Default COD / Simulated Payment Flow
       const order = await orderApi.createOrder({
         addressId: activeAddressId,
-        couponCode: appliedCoupon || undefined,
+        couponCode: appliedCode,
       });
 
       await paymentApi.createPayment({
@@ -495,11 +518,18 @@ export const CheckoutPage: React.FC = () => {
             {/* Coupon Input */}
             <div>
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 block">Have a Coupon?</label>
-              {appliedCoupon ? (
-                <div className="flex items-center justify-between p-3 rounded-xl bg-brand-50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-500/40">
+              {validatedCoupon?.valid ? (
+                <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/40">
                   <div className="flex items-center gap-2">
-                    <Tag className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-                    <span className="text-xs font-bold text-brand-700 dark:text-brand-300">{appliedCoupon}</span>
+                    <Tag className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <div>
+                      <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 block">{validatedCoupon.code}</span>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                        {validatedCoupon.discountType === 'PERCENTAGE'
+                          ? `${validatedCoupon.discountValue}% OFF`
+                          : `$${validatedCoupon.discountValue} FLAT OFF`}
+                      </span>
+                    </div>
                   </div>
                   <button
                     onClick={handleRemoveCoupon}
@@ -515,9 +545,10 @@ export const CheckoutPage: React.FC = () => {
                     value={couponCodeInput}
                     onChange={(e) => setCouponCodeInput(e.target.value)}
                     placeholder="Enter code (e.g. SUMMER10)"
-                    className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500"
+                    disabled={isValidatingCoupon}
+                    className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 uppercase"
                   />
-                  <Button type="submit" variant="secondary" size="sm">
+                  <Button type="submit" variant="secondary" size="sm" isLoading={isValidatingCoupon} disabled={isValidatingCoupon || !couponCodeInput.trim()}>
                     Apply
                   </Button>
                 </form>
@@ -531,10 +562,15 @@ export const CheckoutPage: React.FC = () => {
                 <span className="text-slate-700 dark:text-slate-200 font-medium">${subtotal.toFixed(2)}</span>
               </div>
 
-              {appliedCoupon && (
-                <div className="flex justify-between text-sm text-brand-600 dark:text-brand-400 font-medium">
-                  <span>Coupon Discount</span>
-                  <span>Applied at server</span>
+              {validatedCoupon?.valid && discountAmount > 0 && (
+                <div className="flex justify-between text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+                  <span className="flex items-center gap-1.5">
+                    <span>Coupon Discount</span>
+                    <span className="text-[10px] px-1.5 py-0.2 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 rounded font-semibold">
+                      Preview
+                    </span>
+                  </span>
+                  <span>-${discountAmount.toFixed(2)}</span>
                 </div>
               )}
 
@@ -546,13 +582,13 @@ export const CheckoutPage: React.FC = () => {
 
             <div className="flex justify-between items-center py-4 border-t border-slate-200 dark:border-slate-800">
               <span className="text-slate-900 dark:text-white font-bold text-base">Total Due</span>
-              <span className="text-2xl font-black text-slate-900 dark:text-white">${subtotal.toFixed(2)}</span>
+              <span className="text-2xl font-black text-slate-900 dark:text-white">${totalDue.toFixed(2)}</span>
             </div>
 
             {/* Place Order Button */}
             <Button
               onClick={handlePlaceOrder}
-              disabled={isPlacingOrder || !selectedAddressId}
+              disabled={isPlacingOrder || !activeAddressId}
               variant="primary"
               className="w-full"
               isLoading={isPlacingOrder}

@@ -1,15 +1,33 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Package, Calendar, ArrowRight, ShoppingBag } from 'lucide-react';
+import { Package, Calendar, ArrowRight, ShoppingBag, Filter } from 'lucide-react';
 import { useOrders } from '../../hooks/useOrders';
 import { OrderStatusBadge } from '../../components/common/OrderStatusBadge';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { EmptyState } from '../../components/ui/EmptyState';
+import type { OrderStatus } from '../../types';
+
+type FilterStatus = 'ALL' | OrderStatus;
+
+const FILTER_OPTIONS: { label: string; value: FilterStatus }[] = [
+  { label: 'All Orders', value: 'ALL' },
+  { label: 'Pending', value: 'PENDING' },
+  { label: 'Confirmed', value: 'CONFIRMED' },
+  { label: 'Shipped', value: 'SHIPPED' },
+  { label: 'Delivered', value: 'DELIVERED' },
+  { label: 'Cancelled', value: 'CANCELLED' },
+];
 
 export const OrdersPage: React.FC = () => {
   const navigate = useNavigate();
   const { data: orders = [], isLoading, isError, refetch } = useOrders();
+  const [activeFilter, setActiveFilter] = useState<FilterStatus>('ALL');
+
+  const filteredOrders = orders.filter((order) => {
+    if (activeFilter === 'ALL') return true;
+    return order.status === activeFilter;
+  });
 
   // Loading Skeletons
   if (isLoading) {
@@ -45,6 +63,39 @@ export const OrdersPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Filter Tabs */}
+      {orders.length > 0 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none">
+          {FILTER_OPTIONS.map((opt) => {
+            const count = opt.value === 'ALL' ? orders.length : orders.filter((o) => o.status === opt.value).length;
+            const isSelected = activeFilter === opt.value;
+
+            return (
+              <button
+                key={opt.value}
+                onClick={() => setActiveFilter(opt.value)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                  isSelected
+                    ? 'bg-brand-600 text-white shadow-sm shadow-brand-500/20'
+                    : 'bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'
+                }`}
+              >
+                <span>{opt.label}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                    isSelected
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {orders.length === 0 ? (
         <EmptyState
           icon={Package}
@@ -56,10 +107,24 @@ export const OrdersPage: React.FC = () => {
             icon: <ShoppingBag className="w-4 h-4" />,
           }}
         />
+      ) : filteredOrders.length === 0 ? (
+        <div className="text-center py-16 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-8">
+          <Filter className="w-10 h-10 text-slate-400 dark:text-slate-500 mx-auto mb-3" />
+          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">No {activeFilter.toLowerCase()} orders</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+            You do not have any orders matching the "{activeFilter}" status filter.
+          </p>
+          <button
+            onClick={() => setActiveFilter('ALL')}
+            className="text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline"
+          >
+            Show All Orders
+          </button>
+        </div>
       ) : (
         // Order List
         <div className="space-y-4">
-          {orders.map((order) => {
+          {filteredOrders.map((order) => {
             const itemCount = order.items?.reduce((acc, i) => acc + i.quantity, 0) || 0;
 
             return (

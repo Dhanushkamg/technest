@@ -112,6 +112,65 @@ export const OrderDetailPage: React.FC = () => {
         )}
       </div>
 
+      {/* Order Progress Timeline */}
+      <div className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 shadow-sm mb-8">
+        <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-6">Order Progress</h2>
+        {order.status === 'CANCELLED' ? (
+          <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 text-rose-700 dark:text-rose-300 text-sm flex items-center gap-3">
+            <XCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+            <div>
+              <p className="font-bold">This order has been cancelled.</p>
+              <p className="text-xs text-rose-600 dark:text-rose-400 mt-0.5">Inventory has been restored.</p>
+            </div>
+          </div>
+        ) : (
+          (() => {
+            const steps = [
+              { key: 'PENDING', label: 'Order Placed' },
+              { key: 'CONFIRMED', label: 'Confirmed & Processing' },
+              { key: 'SHIPPED', label: 'Shipped' },
+              { key: 'DELIVERED', label: 'Delivered' },
+            ];
+            const statusOrder = ['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED'];
+            const currentIndex = statusOrder.indexOf(order.status);
+
+            return (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative">
+                {steps.map((step, idx) => {
+                  const isCompleted = currentIndex >= idx;
+                  const isCurrent = currentIndex === idx;
+
+                  return (
+                    <div key={step.key} className="flex flex-col items-center text-center relative z-10">
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm mb-2 transition-all ${
+                          isCompleted
+                            ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 ring-4 ring-emerald-100 dark:ring-emerald-950'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        {isCompleted ? '✓' : idx + 1}
+                      </div>
+                      <span
+                        className={`text-xs font-semibold ${
+                          isCurrent
+                            ? 'text-brand-600 dark:text-brand-400'
+                            : isCompleted
+                            ? 'text-slate-900 dark:text-white'
+                            : 'text-slate-400 dark:text-slate-500'
+                        }`}
+                      >
+                        {step.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()
+        )}
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Items & Address */}
         <div className="lg:col-span-2 space-y-6">
