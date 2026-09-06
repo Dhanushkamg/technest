@@ -89,6 +89,8 @@ export const WishlistPage: React.FC = () => {
             {wishlistItems.map((item) => {
               const imageUrl = getProductImage({ id: item.productId, name: item.productName });
               const isRemovingThis = isRemovingFromWishlist && removingId === item.productId;
+              const isOutOfStock = item.stockQuantity === 0;
+              const lowStock = item.stockQuantity > 0 && item.stockQuantity <= 5;
 
               return (
                 <motion.div
@@ -136,22 +138,37 @@ export const WishlistPage: React.FC = () => {
                       {item.productName}
                     </h3>
 
-                    {/* Price */}
-                    <p className="text-lg font-black text-slate-900 dark:text-white mb-4">
-                      ${Number(item.price).toFixed(2)}
-                    </p>
+                    {/* Price and Stock Status */}
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-lg font-black text-slate-900 dark:text-white">
+                        ${Number(item.price).toFixed(2)}
+                      </p>
+                      {isOutOfStock ? (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400">
+                          Out of Stock
+                        </span>
+                      ) : lowStock ? (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+                          Low Stock
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+                          In Stock
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Add to Cart Action */}
                   <Button
-                    variant="primary"
+                    variant={isOutOfStock ? "outline" : "primary"}
                     size="sm"
                     className="w-full"
                     onClick={() => handleAddToCart(item.productId, item.productName)}
-                    disabled={isAddingToCart}
+                    disabled={isAddingToCart || isOutOfStock}
                     leftIcon={<ShoppingBag className="w-4 h-4" />}
                   >
-                    Move to Cart
+                    {isOutOfStock ? 'Out of Stock' : 'Move to Cart'}
                   </Button>
                 </motion.div>
               );

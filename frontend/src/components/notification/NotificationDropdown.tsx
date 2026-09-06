@@ -167,6 +167,12 @@ export const NotificationDropdown: React.FC = () => {
                 ))
               )}
             </div>
+            {/* Footer */}
+            <div className="px-4 py-2 border-t border-slate-800 bg-slate-950/60 text-center">
+              <a href="/notifications" onClick={() => setIsOpen(false)} className="text-xs text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
+                View all notifications
+              </a>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

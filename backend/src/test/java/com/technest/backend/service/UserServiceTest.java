@@ -85,4 +85,49 @@ class UserServiceTest {
         
         verify(userRepository).save(user);
     }
+
+    @Test
+    void changePassword_success() {
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("hashedpassword", "hashedpassword")).thenReturn(true);
+        when(passwordEncoder.matches("newpassword123", "hashedpassword")).thenReturn(false);
+        when(passwordEncoder.encode("newpassword123")).thenReturn("newhashedpassword");
+
+        com.technest.backend.dto.ChangePasswordRequest request = new com.technest.backend.dto.ChangePasswordRequest();
+        request.setCurrentPassword("hashedpassword");
+        request.setNewPassword("newpassword123");
+
+        userService.changePassword("user@example.com", request);
+
+        assertThat(user.getPassword()).isEqualTo("newhashedpassword");
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void changePassword_incorrectCurrentPassword() {
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrongpassword", "hashedpassword")).thenReturn(false);
+
+        com.technest.backend.dto.ChangePasswordRequest request = new com.technest.backend.dto.ChangePasswordRequest();
+        request.setCurrentPassword("wrongpassword");
+        request.setNewPassword("newpassword123");
+
+        assertThatThrownBy(() -> userService.changePassword("user@example.com", request))
+                .isInstanceOf(com.technest.backend.exception.BadRequestException.class)
+                .hasMessage("Incorrect current password");
+    }
+
+    @Test
+    void changePassword_samePassword() {
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("hashedpassword", "hashedpassword")).thenReturn(true);
+
+        com.technest.backend.dto.ChangePasswordRequest request = new com.technest.backend.dto.ChangePasswordRequest();
+        request.setCurrentPassword("hashedpassword");
+        request.setNewPassword("hashedpassword");
+
+        assertThatThrownBy(() -> userService.changePassword("user@example.com", request))
+                .isInstanceOf(com.technest.backend.exception.BadRequestException.class)
+                .hasMessage("New password cannot be the same as the current password");
+    }
 }

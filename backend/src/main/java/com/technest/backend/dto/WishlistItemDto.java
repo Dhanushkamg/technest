@@ -7,6 +7,7 @@ public class WishlistItemDto {
     private Long productId;
     private String productName;
     private BigDecimal price;
+    private Integer stockQuantity;
 
     public WishlistItemDto() {
     }
@@ -41,5 +42,13 @@ public class WishlistItemDto {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public Integer getStockQuantity() {
+        return stockQuantity;
+    }
+
+    public void setStockQuantity(Integer stockQuantity) {
+        this.stockQuantity = stockQuantity;
     }
 }

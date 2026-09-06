@@ -5,6 +5,8 @@ import AdminLayout from '../layouts/AdminLayout';
 import ProtectedRoute from './ProtectedRoute';
 import AdminRoute from './AdminRoute';
 
+import AccountLayout from '../layouts/AccountLayout';
+
 import HomePage from '../pages/HomePage';
 import ProductsPage from '../pages/ProductsPage';
 import ProductDetailPage from '../pages/ProductDetailPage';
@@ -19,6 +21,8 @@ import OrderSuccessPage from '../pages/customer/OrderSuccessPage';
 import OrdersPage from '../pages/customer/OrdersPage';
 import OrderDetailPage from '../pages/customer/OrderDetailPage';
 import WishlistPage from '../pages/customer/WishlistPage';
+import SecurityPage from '../pages/customer/SecurityPage';
+import NotificationPage from '../pages/customer/NotificationPage';
 
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
 import AdminProductsPage from '../pages/admin/AdminProductsPage';
@@ -39,7 +43,23 @@ export const AppRoutes: React.FC = () => {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-        {/* Protected User Routes */}
+        {/* Protected Customer Account Routes */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <AccountLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/security" element={<SecurityPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/orders/:id" element={<OrderDetailPage />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
+          <Route path="/notifications" element={<NotificationPage />} />
+        </Route>
+
+        {/* Other Protected Routes */}
         <Route
           path="/cart"
           element={
@@ -61,38 +81,6 @@ export const AppRoutes: React.FC = () => {
           element={
             <ProtectedRoute>
               <OrderSuccessPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <ProfilePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/orders"
-          element={
-            <ProtectedRoute>
-              <OrdersPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/orders/:id"
-          element={
-            <ProtectedRoute>
-              <OrderDetailPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/wishlist"
-          element={
-            <ProtectedRoute>
-              <WishlistPage />
             </ProtectedRoute>
           }
         />

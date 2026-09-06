@@ -33,4 +33,11 @@ public class UserController {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(userService.updateUserProfile(email, request));
     }
+
+    @PutMapping("/security/password")
+    public ResponseEntity<Void> changePassword(@Valid @RequestBody com.technest.backend.dto.ChangePasswordRequest request) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        userService.changePassword(email, request);
+        return ResponseEntity.ok().build();
+    }
 }

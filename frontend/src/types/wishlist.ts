@@ -3,6 +3,7 @@ export interface WishlistItem {
   productId: number;
   productName: string;
   price: number;
+  stockQuantity: number;
 }
 
 export interface WishlistResponse {

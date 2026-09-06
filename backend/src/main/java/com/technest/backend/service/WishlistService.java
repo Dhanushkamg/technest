@@ -71,6 +71,7 @@ public class WishlistService {
         dto.setProductId(item.getProduct().getId());
         dto.setProductName(item.getProduct().getName());
         dto.setPrice(item.getProduct().getPrice());
+        dto.setStockQuantity(item.getProduct().getStock());
         return dto;
     }
 }

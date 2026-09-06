@@ -34,3 +34,8 @@ export interface UpdateProfileRequest {
   name?: string;
   phoneNumber?: string;
 }
+
+export interface ChangePasswordRequest {
+  currentPassword?: string;
+  newPassword?: string;
+}

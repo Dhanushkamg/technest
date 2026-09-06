@@ -6,6 +6,7 @@ import type {
   LoginRequest,
   RegisterRequest,
   UpdateProfileRequest,
+  ChangePasswordRequest,
   User,
 } from '../types';
 
@@ -28,6 +29,10 @@ export const authApi = {
   updateProfile: async (data: UpdateProfileRequest): Promise<User> => {
     const response = await axiosClient.put<User>('/users/profile', data);
     return response.data;
+  },
+
+  changePassword: async (data: ChangePasswordRequest): Promise<void> => {
+    await axiosClient.put('/users/security/password', data);
   },
 
   getAddresses: async (): Promise<Address[]> => {
