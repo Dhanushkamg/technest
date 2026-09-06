@@ -359,6 +359,10 @@ public class PayHereService {
                     log.info("PayHere SUCCESS notification already processed for order={}. Skipping.", order.getId());
                     return true;
                 }
+                if (order.getStatus() == OrderStatus.CANCELLED) {
+                    log.warn("PayHere SUCCESS notification received for CANCELLED order={}. Rejecting transition.", order.getId());
+                    return false;
+                }
                 payment.setStatus(PaymentStatus.SUCCESS);
                 order.setStatus(OrderStatus.CONFIRMED);
                 orderRepository.save(order);

@@ -244,6 +244,104 @@ class OrderCancellationServiceTest {
         assertThatThrownBy(() -> orderService.cancelOrder("customer@test.com", 1L))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Order is already cancelled");
+
+        // Verify absolutely NO side effects are repeated on duplicate cancellation
+        verify(productRepository, never()).findByIdWithLock(any());
+        verify(productRepository, never()).save(any());
+        verify(inventoryService, never()).recordMovement(any(), anyInt(), anyInt(), anyInt(), any(), anyString(), anyString());
+        verify(paymentRepository, never()).save(any());
+        verify(couponRepository, never()).findByCodeWithLock(any());
+        verify(notificationService, never()).createNotificationIdempotent(any(), any(), any(), any());
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void cancelOrder_DuplicateCancellationAfterCommit_ThrowsBadRequest_AndNoSideEffectsRepeated() {
+        // First cancellation committed:
+        order.setStatus(OrderStatus.CANCELLED);
+
+        when(userRepository.findByEmail("customer@test.com")).thenReturn(Optional.of(customer));
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        // Attempt second sequential cancellation
+        assertThatThrownBy(() -> orderService.cancelOrder("customer@test.com", 1L))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Order is already cancelled");
+
+        verify(inventoryService, never()).recordMovement(any(), anyInt(), anyInt(), anyInt(), any(), anyString(), anyString());
+        verify(productRepository, never()).save(any());
+        verify(couponRepository, never()).findByCodeWithLock(any());
+        verify(notificationService, never()).createNotificationIdempotent(any(), any(), any(), any());
+    }
+
+    @Test
+    void cancelOrder_ConcurrentCancellation_OptimisticLockConflict_ThrowsOptimisticLockingFailure() {
+        when(userRepository.findByEmail("customer@test.com")).thenReturn(Optional.of(customer));
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(productRepository.findByIdWithLock(50L)).thenReturn(Optional.of(product2));
+        when(productRepository.findByIdWithLock(100L)).thenReturn(Optional.of(product1));
+        when(paymentRepository.findByOrder(order)).thenReturn(List.of());
+        // Simulate concurrent modification where another cancellation transaction committed first
+        when(orderRepository.save(any(Order.class)))
+                .thenThrow(new org.springframework.orm.ObjectOptimisticLockingFailureException(Order.class, 1L));
+
+        assertThatThrownBy(() -> orderService.cancelOrder("customer@test.com", 1L))
+                .isInstanceOf(org.springframework.orm.ObjectOptimisticLockingFailureException.class);
+    }
+
+    @Test
+    void cancelOrder_RecordsInventoryReturnMovementExactlyOncePerItem() {
+        when(userRepository.findByEmail("customer@test.com")).thenReturn(Optional.of(customer));
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(productRepository.findByIdWithLock(50L)).thenReturn(Optional.of(product2));
+        when(productRepository.findByIdWithLock(100L)).thenReturn(Optional.of(product1));
+        when(paymentRepository.findByOrder(order)).thenReturn(List.of());
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        orderService.cancelOrder("customer@test.com", 1L);
+
+        // Verify inventory RETURN movement is recorded exactly once per item
+        verify(inventoryService, times(1)).recordMovement(
+                eq(product1), eq(5), eq(1), eq(6),
+                eq(com.technest.backend.entity.MovementType.RETURN),
+                contains("Order #1 cancellation"), eq(customer.getEmail())
+        );
+        verify(inventoryService, times(1)).recordMovement(
+                eq(product2), eq(20), eq(2), eq(22),
+                eq(com.technest.backend.entity.MovementType.RETURN),
+                contains("Order #1 cancellation"), eq(customer.getEmail())
+        );
+        verify(inventoryService, times(2)).recordMovement(any(), anyInt(), anyInt(), anyInt(), any(), anyString(), anyString());
+    }
+
+    @Test
+    void cancelOrder_WithCoupon_DecrementsUsageCountExactlyOnce_AndDuplicateCancellationDoesNotDecrementAgain() {
+        order.setCouponCode("DISCOUNT10");
+        com.technest.backend.entity.Coupon coupon = new com.technest.backend.entity.Coupon();
+        coupon.setCode("DISCOUNT10");
+        coupon.setUsageCount(1);
+
+        when(userRepository.findByEmail("customer@test.com")).thenReturn(Optional.of(customer));
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(productRepository.findByIdWithLock(50L)).thenReturn(Optional.of(product2));
+        when(productRepository.findByIdWithLock(100L)).thenReturn(Optional.of(product1));
+        when(paymentRepository.findByOrder(order)).thenReturn(List.of());
+        when(couponRepository.findByCodeWithLock("DISCOUNT10")).thenReturn(Optional.of(coupon));
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // First cancellation
+        orderService.cancelOrder("customer@test.com", 1L);
+
+        assertThat(coupon.getUsageCount()).isEqualTo(0);
+        verify(couponRepository, times(1)).save(coupon);
+
+        // Second cancellation attempt
+        assertThatThrownBy(() -> orderService.cancelOrder("customer@test.com", 1L))
+                .isInstanceOf(BadRequestException.class);
+
+        // Coupon count remains 0, not decremented to negative
+        assertThat(coupon.getUsageCount()).isEqualTo(0);
+        verify(couponRepository, times(1)).save(coupon); // Still only 1 save from the first cancellation
     }
 
     // =========================================================

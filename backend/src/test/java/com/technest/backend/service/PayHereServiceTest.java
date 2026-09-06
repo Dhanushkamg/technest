@@ -422,6 +422,66 @@ class PayHereServiceTest {
         verify(paymentRepository, never()).save(any());
         verify(orderRepository, never()).save(any());
         verify(notificationService, never()).createNotification(any(), any(), any());
+        verify(notificationService, never()).createNotificationIdempotent(any(), any(), any(), any());
+    }
+
+    @Test
+    void processNotification_SequentialDuplicateWebhookAfterCommit_NoBusinessSideEffectsRepeated() throws Exception {
+        // Webhook A has already executed, transitioned state, and committed to DB:
+        pendingPayment.setStatus(PaymentStatus.SUCCESS);
+        testOrder.setStatus(OrderStatus.CONFIRMED);
+
+        // Webhook B arrives delayed / retried after commit
+        String sig = computeNotifySig(MERCHANT_ID, "42", "1500.00", CURRENCY, "2", MERCHANT_SECRET);
+        Map<String, String> params = buildParams("2", "1500.00", CURRENCY, sig);
+
+        when(orderRepository.findById(42L)).thenReturn(Optional.of(testOrder));
+        when(paymentRepository.findByOrder(testOrder)).thenReturn(List.of(pendingPayment));
+
+        boolean result = payHereService.processNotification(params);
+
+        // Acknowledges gateway with true (HTTP 200) to halt further retries
+        assertThat(result).isTrue();
+        assertThat(pendingPayment.getStatus()).isEqualTo(PaymentStatus.SUCCESS);
+        assertThat(testOrder.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
+
+        // Absolutely zero DB mutations or notifications dispatched
+        verify(paymentRepository, never()).save(any());
+        verify(orderRepository, never()).save(any());
+        verify(notificationService, never()).createNotification(any(), any(), any());
+        verify(notificationService, never()).createNotificationIdempotent(any(), any(), any(), any());
+    }
+
+    @Test
+    void processNotification_ConcurrentDuplicateWebhook_OptimisticLockFailure_ThrowsOptimisticLockException() throws Exception {
+        String sig = computeNotifySig(MERCHANT_ID, "42", "1500.00", CURRENCY, "2", MERCHANT_SECRET);
+        Map<String, String> params = buildParams("2", "1500.00", CURRENCY, sig);
+
+        when(orderRepository.findById(42L)).thenReturn(Optional.of(testOrder));
+        when(paymentRepository.findByOrder(testOrder)).thenReturn(List.of(pendingPayment));
+        // Simulate concurrent conflict where another transaction committed first and incremented @Version
+        when(orderRepository.save(any())).thenThrow(new org.springframework.orm.ObjectOptimisticLockingFailureException(Order.class, 42L));
+
+        assertThatThrownBy(() -> payHereService.processNotification(params))
+                .isInstanceOf(org.springframework.orm.ObjectOptimisticLockingFailureException.class);
+    }
+
+    @Test
+    void processNotification_SuccessWebhookOnCancelledOrder_RejectsTransition() throws Exception {
+        testOrder.setStatus(OrderStatus.CANCELLED);
+
+        String sig = computeNotifySig(MERCHANT_ID, "42", "1500.00", CURRENCY, "2", MERCHANT_SECRET);
+        Map<String, String> params = buildParams("2", "1500.00", CURRENCY, sig);
+
+        when(orderRepository.findById(42L)).thenReturn(Optional.of(testOrder));
+        when(paymentRepository.findByOrder(testOrder)).thenReturn(List.of(pendingPayment));
+
+        boolean result = payHereService.processNotification(params);
+
+        assertThat(result).isFalse();
+        assertThat(testOrder.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        verify(orderRepository, never()).save(any());
+        verify(notificationService, never()).createNotificationIdempotent(any(), any(), any(), any());
     }
 
     // =========================================================================

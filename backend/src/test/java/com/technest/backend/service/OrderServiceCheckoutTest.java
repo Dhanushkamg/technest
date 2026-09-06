@@ -482,4 +482,70 @@ class OrderServiceCheckoutTest {
         // Coupon repo should not have been queried
         verify(couponRepository, never()).findByCodeWithLock(any());
     }
+
+    @Test
+    void checkout_RecordsInventorySaleMovementExactlyOncePerItem() {
+        Category category = new Category();
+        category.setId(1L);
+
+        Product product2 = new Product();
+        product2.setId(20L);
+        product2.setName("Second Product");
+        product2.setPrice(BigDecimal.valueOf(50));
+        product2.setStock(10);
+        product2.setCategory(category);
+
+        CartItem item2 = new CartItem();
+        item2.setProduct(product2);
+        item2.setQuantity(3);
+        cart.getItems().add(item2);
+
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
+        when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
+        when(productRepository.findByIdWithLock(10L)).thenReturn(Optional.of(product));
+        when(productRepository.findByIdWithLock(20L)).thenReturn(Optional.of(product2));
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> {
+            Order o = inv.getArgument(0);
+            o.setId(99L);
+            return o;
+        });
+
+        orderService.checkout("user@example.com", 100L, null);
+
+        // Verify exactly 2 SALE movements recorded (1 per distinct item)
+        verify(inventoryService, times(1)).recordMovement(
+                eq(product), eq(5), eq(-2), eq(3),
+                eq(com.technest.backend.entity.MovementType.SALE),
+                eq("Order #99"), eq(user.getEmail())
+        );
+        verify(inventoryService, times(1)).recordMovement(
+                eq(product2), eq(10), eq(-3), eq(7),
+                eq(com.technest.backend.entity.MovementType.SALE),
+                eq("Order #99"), eq(user.getEmail())
+        );
+        verify(inventoryService, times(2)).recordMovement(any(), anyInt(), anyInt(), anyInt(), any(), anyString(), anyString());
+    }
+
+    @Test
+    void checkout_WithCoupon_IncrementsUsageCountExactlyOnce() {
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+        when(cartRepository.findByUserWithLock(user)).thenReturn(Optional.of(cart));
+        when(addressRepository.findById(100L)).thenReturn(Optional.of(address));
+        mockProductLock(product);
+
+        com.technest.backend.entity.Coupon coupon = new com.technest.backend.entity.Coupon();
+        coupon.setCode("PROMO10");
+        coupon.setActive(true);
+        coupon.setDiscountType(com.technest.backend.entity.DiscountType.PERCENTAGE);
+        coupon.setDiscountValue(BigDecimal.valueOf(10));
+        coupon.setUsageCount(5);
+
+        when(couponRepository.findByCodeWithLock("PROMO10")).thenReturn(Optional.of(coupon));
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        orderService.checkout("user@example.com", 100L, "PROMO10");
+
+        assertThat(coupon.getUsageCount()).isEqualTo(6);
+    }
 }

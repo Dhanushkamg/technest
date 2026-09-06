@@ -80,6 +80,18 @@ class NotificationServiceTest {
         verify(notificationRepository, times(1)).saveAndFlush(any(Notification.class));
     }
 
+    @Test
+    void createNotificationIdempotent_DuplicateKey_CatchesDataIntegrityViolation_AndPreventsDuplicate() {
+        // When duplicate deduplicationKey is inserted, DB unique constraint causes DataIntegrityViolationException
+        doThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate key value violates unique constraint"))
+                .when(notificationRepository).saveAndFlush(any(Notification.class));
+
+        // Should not throw exception to caller (gracefully suppressed)
+        notificationService.createNotificationIdempotent(user, NotificationType.ORDER_CREATED, "Test message", "duplicate_key");
+
+        verify(notificationRepository, times(1)).saveAndFlush(any(Notification.class));
+    }
+
     // -------------------------------------------------------
     // getUserNotifications
     // -------------------------------------------------------
