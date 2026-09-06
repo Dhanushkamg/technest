@@ -61,6 +61,10 @@ public class CouponService {
             discountAmount = coupon.getDiscountValue();
         }
 
+        if (coupon.getMaxDiscountAmount() != null && discountAmount.compareTo(coupon.getMaxDiscountAmount()) > 0) {
+            discountAmount = coupon.getMaxDiscountAmount();
+        }
+
         if (discountAmount.compareTo(orderAmount) > 0) {
             discountAmount = orderAmount;
         }

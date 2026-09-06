@@ -9,10 +9,14 @@ import {
   CheckCircle,
   AlertCircle,
   XCircle,
+  History,
+  TrendingUp,
 } from 'lucide-react';
 import { useAdminProducts } from '../../hooks/admin/useAdminProducts';
 import { useAdminCategories } from '../../hooks/admin/useAdminCategories';
 import ProductFormModal from '../../components/admin/ProductFormModal';
+import StockAdjustModal from '../../components/admin/StockAdjustModal';
+import ProductMovementsModal from '../../components/admin/ProductMovementsModal';
 import { getProductImage } from '../../utils/productImages';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -29,7 +33,6 @@ export const AdminProductsPage: React.FC = () => {
     isCreatingProduct,
     updateProduct,
     isUpdatingProduct,
-    updateStock,
     deleteProduct,
   } = useAdminProducts();
 
@@ -43,9 +46,12 @@ export const AdminProductsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  // Quick Stock Edit State
-  const [editingStockId, setEditingStockId] = useState<number | null>(null);
-  const [stockInput, setStockInput] = useState<number>(0);
+  // Stock Adjust & Movement History Modals
+  const [adjustingProduct, setAdjustingProduct] = useState<Product | null>(null);
+  const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
+
+  // Delete Confirmation State
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   const handleOpenAddModal = () => {
     setEditingProduct(null);
@@ -66,9 +72,11 @@ export const AdminProductsPage: React.FC = () => {
     setIsModalOpen(false);
   };
 
-  const handleStockUpdateSave = async (id: number) => {
-    await updateStock({ id, stock: stockInput });
-    setEditingStockId(null);
+  const handleDeleteConfirm = async () => {
+    if (productToDelete) {
+      await deleteProduct(productToDelete.id);
+      setProductToDelete(null);
+    }
   };
 
   // Filtered Products
@@ -83,7 +91,7 @@ export const AdminProductsPage: React.FC = () => {
     if (stock === 0) {
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/80 dark:text-rose-400 dark:border-rose-800/50">
-          <XCircle className="w-3 h-3" /> Out of Stock
+          <XCircle className="w-3 h-3" /> Out of Stock (0)
         </span>
       );
     }
@@ -103,7 +111,7 @@ export const AdminProductsPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-pulse">
+      <div className="space-y-6 animate-pulse p-4 sm:p-6">
         <div className="w-48 h-8 bg-slate-200 dark:bg-slate-800 rounded mb-4" />
         <div className="h-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6" />
       </div>
@@ -112,7 +120,7 @@ export const AdminProductsPage: React.FC = () => {
 
   if (isError) {
     return (
-      <div className="max-w-md mx-auto py-20">
+      <div className="max-w-md mx-auto py-20 p-4">
         <ErrorState
           title="Failed to Load Products"
           description="Could not retrieve product list from admin server."
@@ -123,14 +131,16 @@ export const AdminProductsPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-2 sm:p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
             <Package className="w-7 h-7 text-brand-500 dark:text-brand-400" /> Product Inventory Management
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Manage catalog, pricing, and live inventory stock</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Manage catalog, transactional stock adjustments, and inventory movement history
+          </p>
         </div>
 
         <Button
@@ -201,7 +211,6 @@ export const AdminProductsPage: React.FC = () => {
               ) : (
                 filteredProducts.map((p) => {
                   const imgUrl = getProductImage(p);
-                  const isStockEditing = editingStockId === p.id;
 
                   return (
                     <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
@@ -228,44 +237,25 @@ export const AdminProductsPage: React.FC = () => {
                         ${Number(p.price).toFixed(2)}
                       </td>
 
-                      {/* Stock Status / Inline Edit */}
+                      {/* Stock Status & Quick Adjustment Actions */}
                       <td className="px-6 py-3.5">
-                        {isStockEditing ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              min="0"
-                              value={stockInput}
-                              onChange={(e) => setStockInput(parseInt(e.target.value) || 0)}
-                              className="w-16 px-2 py-1 bg-white dark:bg-slate-950 border border-brand-500 rounded text-slate-900 dark:text-white text-xs"
-                            />
-                            <button
-                              onClick={() => handleStockUpdateSave(p.id)}
-                              className="px-2 py-1 bg-brand-500 hover:bg-brand-600 text-white rounded text-[11px] font-bold transition-colors"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setEditingStockId(null)}
-                              className="px-2 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded text-[11px]"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            {getStockBadge(p.stock)}
-                            <button
-                              onClick={() => {
-                                setEditingStockId(p.id);
-                                setStockInput(p.stock);
-                              }}
-                              className="text-[10px] text-brand-600 dark:text-brand-400 hover:underline font-semibold"
-                            >
-                              Quick Edit
-                            </button>
-                          </div>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {getStockBadge(p.stock)}
+                          <button
+                            onClick={() => setAdjustingProduct(p)}
+                            className="px-2 py-0.5 text-[10px] font-semibold bg-brand-50 text-brand-600 dark:bg-brand-950/50 dark:text-brand-400 border border-brand-200 dark:border-brand-800/40 rounded-lg hover:bg-brand-100 transition flex items-center gap-1"
+                            title="Adjust Stock"
+                          >
+                            <TrendingUp className="w-3 h-3" /> Adjust
+                          </button>
+                          <button
+                            onClick={() => setHistoryProduct(p)}
+                            className="px-2 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center gap-1"
+                            title="View Movement History"
+                          >
+                            <History className="w-3 h-3" /> Audit
+                          </button>
+                        </div>
                       </td>
 
                       {/* Actions */}
@@ -279,7 +269,7 @@ export const AdminProductsPage: React.FC = () => {
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => deleteProduct(p.id)}
+                            onClick={() => setProductToDelete(p)}
                             className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
                             title="Delete Product"
                           >
@@ -305,6 +295,46 @@ export const AdminProductsPage: React.FC = () => {
         product={editingProduct}
         isLoading={isCreatingProduct || isUpdatingProduct}
       />
+
+      {/* Stock Adjust Modal */}
+      <StockAdjustModal
+        isOpen={adjustingProduct !== null}
+        onClose={() => setAdjustingProduct(null)}
+        product={adjustingProduct}
+      />
+
+      {/* Product Movements Modal */}
+      <ProductMovementsModal
+        isOpen={historyProduct !== null}
+        onClose={() => setHistoryProduct(null)}
+        product={historyProduct}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">Delete Product?</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              Are you sure you want to delete <strong className="text-slate-900 dark:text-white">{productToDelete.name}</strong>? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setProductToDelete(null)}
+                className="px-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 text-xs rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -44,6 +44,7 @@ class OrderServiceCheckoutTest {
     @Mock private com.technest.backend.repository.CouponRepository couponRepository;
     @Mock private NotificationService notificationService;
     @Mock private com.technest.backend.repository.PaymentRepository paymentRepository;
+    @Mock private InventoryService inventoryService;
 
     @InjectMocks
     private OrderService orderService;

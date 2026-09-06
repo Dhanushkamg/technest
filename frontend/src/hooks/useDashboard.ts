@@ -8,7 +8,7 @@ export const useDashboard = () => {
 
   return useQuery({
     queryKey: ['admin', 'dashboard'],
-    queryFn: adminApi.getDashboardStats,
+    queryFn: () => adminApi.getDashboardStats(),
     enabled: isAdmin,
     staleTime: 1000 * 60 * 2, // 2 minutes
   });

@@ -146,4 +146,38 @@ class AdminCouponServiceTest {
 
         assertThat(response.isActive()).isFalse();
     }
+
+    @Test
+    void createCoupon_withNewFields_success() {
+        when(userRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(adminUser));
+        when(couponRepository.existsByCode("WELCOME50")).thenReturn(false);
+
+        Coupon savedCoupon = new Coupon();
+        savedCoupon.setId(2L);
+        savedCoupon.setCode("WELCOME50");
+        savedCoupon.setDiscountType(DiscountType.PERCENTAGE);
+        savedCoupon.setDiscountValue(BigDecimal.valueOf(20));
+        savedCoupon.setMaxDiscountAmount(BigDecimal.valueOf(50));
+        savedCoupon.setPerUserLimit(1);
+        savedCoupon.setFirstOrderOnly(true);
+        savedCoupon.setActive(true);
+        savedCoupon.setUsageCount(0);
+
+        when(couponRepository.save(any(Coupon.class))).thenReturn(savedCoupon);
+
+        CreateCouponRequest request = new CreateCouponRequest();
+        request.setCode("WELCOME50");
+        request.setDiscountType(DiscountType.PERCENTAGE);
+        request.setDiscountValue(BigDecimal.valueOf(20));
+        request.setMaxDiscountAmount(BigDecimal.valueOf(50));
+        request.setPerUserLimit(1);
+        request.setFirstOrderOnly(true);
+
+        CouponResponse response = adminCouponService.createCoupon("admin@example.com", request);
+
+        assertThat(response.getCode()).isEqualTo("WELCOME50");
+        assertThat(response.getMaxDiscountAmount()).isEqualByComparingTo(BigDecimal.valueOf(50));
+        assertThat(response.getPerUserLimit()).isEqualTo(1);
+        assertThat(response.isFirstOrderOnly()).isTrue();
+    }
 }

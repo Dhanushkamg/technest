@@ -33,4 +33,9 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
      * Dashboard: count products with stock at or below the given threshold.
      */
     long countByStockLessThanEqual(int threshold);
+
+    /**
+     * Dashboard: count products with exact stock (e.g. 0 for out-of-stock).
+     */
+    long countByStock(int stock);
 }

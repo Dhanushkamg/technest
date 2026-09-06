@@ -31,7 +31,39 @@ public class UpdateCouponRequest {
     @Min(value = 0, message = "Minimum order amount cannot be negative")
     private BigDecimal minOrderAmount;
 
+    @DecimalMin(value = "0.01", message = "Maximum discount amount must be greater than zero")
+    private BigDecimal maxDiscountAmount;
+
+    @Min(value = 1, message = "Per-user usage limit must be at least 1")
+    private Integer perUserLimit;
+
+    private Boolean firstOrderOnly = false;
+
     public UpdateCouponRequest() {
+    }
+
+    public BigDecimal getMaxDiscountAmount() {
+        return maxDiscountAmount;
+    }
+
+    public void setMaxDiscountAmount(BigDecimal maxDiscountAmount) {
+        this.maxDiscountAmount = maxDiscountAmount;
+    }
+
+    public Integer getPerUserLimit() {
+        return perUserLimit;
+    }
+
+    public void setPerUserLimit(Integer perUserLimit) {
+        this.perUserLimit = perUserLimit;
+    }
+
+    public Boolean getFirstOrderOnly() {
+        return firstOrderOnly;
+    }
+
+    public void setFirstOrderOnly(Boolean firstOrderOnly) {
+        this.firstOrderOnly = firstOrderOnly;
     }
 
     public String getCode() {

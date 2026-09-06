@@ -4,6 +4,7 @@ import com.technest.backend.dto.DashboardResponse;
 import com.technest.backend.entity.Order;
 import com.technest.backend.entity.OrderStatus;
 import com.technest.backend.entity.User;
+import com.technest.backend.exception.BadRequestException;
 import com.technest.backend.exception.ForbiddenException;
 import com.technest.backend.exception.ResourceNotFoundException;
 import com.technest.backend.repository.CategoryRepository;
@@ -86,6 +87,9 @@ class AdminDashboardServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.getRecentOrders()).isNotNull();
         assertThat(response.getTopSellingProducts()).isNotNull();
+        assertThat(response.getTopCategories()).isNotNull();
+        assertThat(response.getRevenueTimeline()).isNotNull();
+        assertThat(response.getDateFilter()).isEqualTo("LAST_30_DAYS");
     }
 
     // -----------------------------------------------------------
@@ -98,13 +102,16 @@ class AdminDashboardServiceTest {
         when(userRepository.count()).thenReturn(120L);
         when(productRepository.count()).thenReturn(84L);
         when(categoryRepository.count()).thenReturn(12L);
-        when(orderRepository.count()).thenReturn(340L);
-        when(orderRepository.sumTotalAmountExcludingStatus(OrderStatus.CANCELLED))
+        when(orderRepository.countByCreatedAtBetween(any(), any())).thenReturn(340L);
+        when(orderRepository.sumTotalAmountExcludingStatusAndDateRange(eq(OrderStatus.CANCELLED), any(), any()))
                 .thenReturn(BigDecimal.valueOf(48320.50));
         stubStatusCounts(14, 22, 18, 281, 5);
         when(productRepository.countByStockLessThanEqual(5)).thenReturn(7L);
+        when(productRepository.countByStock(0)).thenReturn(2L);
         when(orderRepository.findAllByOrderByCreatedAtDesc(any())).thenReturn(Page.empty());
-        when(orderItemRepository.findTopSellingProducts(any(), any())).thenReturn(List.of());
+        when(orderItemRepository.findTopSellingProductsInRange(any(), any(), any(), any())).thenReturn(List.of());
+        when(orderItemRepository.findTopCategoriesInRange(any(), any(), any(), any())).thenReturn(List.of());
+        when(orderRepository.findOrdersInRange(any(), any(), any())).thenReturn(List.of());
 
         DashboardResponse response = dashboardService.getDashboard(adminUser.getEmail());
 
@@ -112,6 +119,8 @@ class AdminDashboardServiceTest {
         assertThat(response.getTotalProducts()).isEqualTo(84L);
         assertThat(response.getTotalCategories()).isEqualTo(12L);
         assertThat(response.getTotalOrders()).isEqualTo(340L);
+        assertThat(response.getLowStockProducts()).isEqualTo(7L);
+        assertThat(response.getOutOfStockProducts()).isEqualTo(2L);
     }
 
     // -----------------------------------------------------------
@@ -124,19 +133,21 @@ class AdminDashboardServiceTest {
         when(userRepository.count()).thenReturn(1L);
         when(productRepository.count()).thenReturn(1L);
         when(categoryRepository.count()).thenReturn(1L);
-        when(orderRepository.count()).thenReturn(2L);
-        when(orderRepository.sumTotalAmountExcludingStatus(OrderStatus.CANCELLED))
+        when(orderRepository.countByCreatedAtBetween(any(), any())).thenReturn(2L);
+        when(orderRepository.sumTotalAmountExcludingStatusAndDateRange(eq(OrderStatus.CANCELLED), any(), any()))
                 .thenReturn(BigDecimal.valueOf(999.99));
         stubStatusCounts(0, 0, 0, 2, 0);
         when(productRepository.countByStockLessThanEqual(5)).thenReturn(0L);
+        when(productRepository.countByStock(0)).thenReturn(0L);
         when(orderRepository.findAllByOrderByCreatedAtDesc(any())).thenReturn(Page.empty());
-        when(orderItemRepository.findTopSellingProducts(any(), any())).thenReturn(List.of());
+        when(orderItemRepository.findTopSellingProductsInRange(any(), any(), any(), any())).thenReturn(List.of());
+        when(orderItemRepository.findTopCategoriesInRange(any(), any(), any(), any())).thenReturn(List.of());
+        when(orderRepository.findOrdersInRange(any(), any(), any())).thenReturn(List.of());
 
         DashboardResponse response = dashboardService.getDashboard(adminUser.getEmail());
 
         assertThat(response.getTotalRevenue()).isEqualByComparingTo(BigDecimal.valueOf(999.99));
-        // Verify it calls with CANCELLED as the excluded status
-        verify(orderRepository).sumTotalAmountExcludingStatus(OrderStatus.CANCELLED);
+        verify(orderRepository).sumTotalAmountExcludingStatusAndDateRange(eq(OrderStatus.CANCELLED), any(), any());
     }
 
     // -----------------------------------------------------------
@@ -149,12 +160,15 @@ class AdminDashboardServiceTest {
         when(userRepository.count()).thenReturn(1L);
         when(productRepository.count()).thenReturn(1L);
         when(categoryRepository.count()).thenReturn(1L);
-        when(orderRepository.count()).thenReturn(60L);
-        when(orderRepository.sumTotalAmountExcludingStatus(any())).thenReturn(BigDecimal.ZERO);
+        when(orderRepository.countByCreatedAtBetween(any(), any())).thenReturn(60L);
+        when(orderRepository.sumTotalAmountExcludingStatusAndDateRange(any(), any(), any())).thenReturn(BigDecimal.ZERO);
         stubStatusCounts(10, 15, 20, 12, 3);
         when(productRepository.countByStockLessThanEqual(anyInt())).thenReturn(0L);
+        when(productRepository.countByStock(0)).thenReturn(0L);
         when(orderRepository.findAllByOrderByCreatedAtDesc(any())).thenReturn(Page.empty());
-        when(orderItemRepository.findTopSellingProducts(any(), any())).thenReturn(List.of());
+        when(orderItemRepository.findTopSellingProductsInRange(any(), any(), any(), any())).thenReturn(List.of());
+        when(orderItemRepository.findTopCategoriesInRange(any(), any(), any(), any())).thenReturn(List.of());
+        when(orderRepository.findOrdersInRange(any(), any(), any())).thenReturn(List.of());
 
         DashboardResponse response = dashboardService.getDashboard(adminUser.getEmail());
 
@@ -175,24 +189,25 @@ class AdminDashboardServiceTest {
         when(userRepository.count()).thenReturn(1L);
         when(productRepository.count()).thenReturn(1L);
         when(categoryRepository.count()).thenReturn(1L);
-        when(orderRepository.count()).thenReturn(1L);
-        when(orderRepository.sumTotalAmountExcludingStatus(any())).thenReturn(BigDecimal.ZERO);
+        when(orderRepository.countByCreatedAtBetween(any(), any())).thenReturn(1L);
+        when(orderRepository.sumTotalAmountExcludingStatusAndDateRange(any(), any(), any())).thenReturn(BigDecimal.ZERO);
         stubStatusCounts(0, 0, 0, 1, 0);
         when(productRepository.countByStockLessThanEqual(anyInt())).thenReturn(0L);
+        when(productRepository.countByStock(0)).thenReturn(0L);
 
-        // Return only 1 order to keep the test simple
         Page<Order> page = new PageImpl<>(List.of(sampleOrder));
         when(orderRepository.findAllByOrderByCreatedAtDesc(any())).thenReturn(page);
-        when(orderItemRepository.findTopSellingProducts(any(), any())).thenReturn(List.of());
+        when(orderItemRepository.findTopSellingProductsInRange(any(), any(), any(), any())).thenReturn(List.of());
+        when(orderItemRepository.findTopCategoriesInRange(any(), any(), any(), any())).thenReturn(List.of());
+        when(orderRepository.findOrdersInRange(any(), any(), any())).thenReturn(List.of());
 
         dashboardService.getDashboard(adminUser.getEmail());
 
-        // Verify that PageRequest was called with page=0, size=5
         verify(orderRepository).findAllByOrderByCreatedAtDesc(PageRequest.of(0, 5));
     }
 
     // -----------------------------------------------------------
-    // 6. Low-stock count
+    // 6. Low-stock & Out-of-stock count
     // -----------------------------------------------------------
 
     @Test
@@ -201,17 +216,22 @@ class AdminDashboardServiceTest {
         when(userRepository.count()).thenReturn(1L);
         when(productRepository.count()).thenReturn(10L);
         when(categoryRepository.count()).thenReturn(1L);
-        when(orderRepository.count()).thenReturn(0L);
-        when(orderRepository.sumTotalAmountExcludingStatus(any())).thenReturn(BigDecimal.ZERO);
+        when(orderRepository.countByCreatedAtBetween(any(), any())).thenReturn(0L);
+        when(orderRepository.sumTotalAmountExcludingStatusAndDateRange(any(), any(), any())).thenReturn(BigDecimal.ZERO);
         stubStatusCounts(0, 0, 0, 0, 0);
         when(productRepository.countByStockLessThanEqual(5)).thenReturn(3L);
+        when(productRepository.countByStock(0)).thenReturn(1L);
         when(orderRepository.findAllByOrderByCreatedAtDesc(any())).thenReturn(Page.empty());
-        when(orderItemRepository.findTopSellingProducts(any(), any())).thenReturn(List.of());
+        when(orderItemRepository.findTopSellingProductsInRange(any(), any(), any(), any())).thenReturn(List.of());
+        when(orderItemRepository.findTopCategoriesInRange(any(), any(), any(), any())).thenReturn(List.of());
+        when(orderRepository.findOrdersInRange(any(), any(), any())).thenReturn(List.of());
 
         DashboardResponse response = dashboardService.getDashboard(adminUser.getEmail());
 
         assertThat(response.getLowStockProducts()).isEqualTo(3L);
+        assertThat(response.getOutOfStockProducts()).isEqualTo(1L);
         verify(productRepository).countByStockLessThanEqual(5);
+        verify(productRepository).countByStock(0);
     }
 
     // -----------------------------------------------------------
@@ -224,15 +244,18 @@ class AdminDashboardServiceTest {
         when(userRepository.count()).thenReturn(1L);
         when(productRepository.count()).thenReturn(1L);
         when(categoryRepository.count()).thenReturn(1L);
-        when(orderRepository.count()).thenReturn(1L);
-        when(orderRepository.sumTotalAmountExcludingStatus(any())).thenReturn(BigDecimal.ZERO);
+        when(orderRepository.countByCreatedAtBetween(any(), any())).thenReturn(1L);
+        when(orderRepository.sumTotalAmountExcludingStatusAndDateRange(any(), any(), any())).thenReturn(BigDecimal.ZERO);
         stubStatusCounts(0, 0, 0, 1, 0);
         when(productRepository.countByStockLessThanEqual(anyInt())).thenReturn(0L);
+        when(productRepository.countByStock(0)).thenReturn(0L);
         when(orderRepository.findAllByOrderByCreatedAtDesc(any())).thenReturn(Page.empty());
+        when(orderItemRepository.findTopCategoriesInRange(any(), any(), any(), any())).thenReturn(List.of());
+        when(orderRepository.findOrdersInRange(any(), any(), any())).thenReturn(List.of());
 
         Object[] row1 = { 5L, "Wireless Mouse", 120L };
         Object[] row2 = { 7L, "USB Hub", 85L };
-        when(orderItemRepository.findTopSellingProducts(eq(OrderStatus.CANCELLED), any()))
+        when(orderItemRepository.findTopSellingProductsInRange(eq(OrderStatus.CANCELLED), any(), any(), any()))
                 .thenReturn(List.of(row1, row2));
 
         DashboardResponse response = dashboardService.getDashboard(adminUser.getEmail());
@@ -243,14 +266,55 @@ class AdminDashboardServiceTest {
         assertThat(response.getTopSellingProducts().get(0).getTotalSold()).isEqualTo(120L);
         assertThat(response.getTopSellingProducts().get(1).getProductId()).isEqualTo(7L);
 
-        // Verify that CANCELLED orders are excluded from top-selling
-        verify(orderItemRepository).findTopSellingProducts(eq(OrderStatus.CANCELLED), any());
-        // Verify top-5 limit applied
-        verify(orderItemRepository).findTopSellingProducts(any(), eq(PageRequest.of(0, 5)));
+        verify(orderItemRepository).findTopSellingProductsInRange(eq(OrderStatus.CANCELLED), any(), any(), eq(PageRequest.of(0, 5)));
     }
 
     // -----------------------------------------------------------
-    // 8. Non-admin user throws ForbiddenException
+    // 8. Date filtering options
+    // -----------------------------------------------------------
+
+    @Test
+    void getDashboard_withDateRanges() {
+        stubAllRepositories();
+
+        DashboardResponse todayRes = dashboardService.getDashboard(adminUser.getEmail(), "TODAY", null, null);
+        assertThat(todayRes.getDateFilter()).isEqualTo("TODAY");
+
+        DashboardResponse weekRes = dashboardService.getDashboard(adminUser.getEmail(), "7D", null, null);
+        assertThat(weekRes.getDateFilter()).isEqualTo("LAST_7_DAYS");
+
+        DashboardResponse monthRes = dashboardService.getDashboard(adminUser.getEmail(), "30D", null, null);
+        assertThat(monthRes.getDateFilter()).isEqualTo("LAST_30_DAYS");
+
+        DashboardResponse quarterRes = dashboardService.getDashboard(adminUser.getEmail(), "3M", null, null);
+        assertThat(quarterRes.getDateFilter()).isEqualTo("LAST_3_MONTHS");
+
+        DashboardResponse yearRes = dashboardService.getDashboard(adminUser.getEmail(), "1Y", null, null);
+        assertThat(yearRes.getDateFilter()).isEqualTo("LAST_1_YEAR");
+
+        DashboardResponse customRes = dashboardService.getDashboard(adminUser.getEmail(), "CUSTOM", "2026-01-01", "2026-01-31");
+        assertThat(customRes.getDateFilter()).isEqualTo("CUSTOM");
+    }
+
+    @Test
+    void getDashboard_customRangeInvalid_throwsBadRequest() {
+        when(userRepository.findByEmail(adminUser.getEmail())).thenReturn(Optional.of(adminUser));
+
+        // Missing dates
+        assertThatThrownBy(() -> dashboardService.getDashboard(adminUser.getEmail(), "CUSTOM", null, null))
+                .isInstanceOf(BadRequestException.class);
+
+        // Start after end
+        assertThatThrownBy(() -> dashboardService.getDashboard(adminUser.getEmail(), "CUSTOM", "2026-05-10", "2026-05-01"))
+                .isInstanceOf(BadRequestException.class);
+
+        // Malformed format
+        assertThatThrownBy(() -> dashboardService.getDashboard(adminUser.getEmail(), "CUSTOM", "invalid-date", "2026-05-01"))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    // -----------------------------------------------------------
+    // 9. Non-admin user throws ForbiddenException
     // -----------------------------------------------------------
 
     @Test
@@ -261,13 +325,12 @@ class AdminDashboardServiceTest {
                 .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("admin role required");
 
-        // No repository reads should occur
         verify(orderRepository, never()).count();
         verify(productRepository, never()).count();
     }
 
     // -----------------------------------------------------------
-    // 9. Missing user throws ResourceNotFoundException
+    // 10. Missing user throws ResourceNotFoundException
     // -----------------------------------------------------------
 
     @Test
@@ -280,7 +343,7 @@ class AdminDashboardServiceTest {
     }
 
     // -----------------------------------------------------------
-    // 10. Empty/no-order data returns safe zero/empty values
+    // 11. Empty/no-order data returns safe zero/empty values
     // -----------------------------------------------------------
 
     @Test
@@ -289,14 +352,16 @@ class AdminDashboardServiceTest {
         when(userRepository.count()).thenReturn(0L);
         when(productRepository.count()).thenReturn(0L);
         when(categoryRepository.count()).thenReturn(0L);
-        when(orderRepository.count()).thenReturn(0L);
-        // COALESCE(SUM(...), 0) → returns BigDecimal.ZERO when no rows match
-        when(orderRepository.sumTotalAmountExcludingStatus(OrderStatus.CANCELLED))
+        when(orderRepository.countByCreatedAtBetween(any(), any())).thenReturn(0L);
+        when(orderRepository.sumTotalAmountExcludingStatusAndDateRange(eq(OrderStatus.CANCELLED), any(), any()))
                 .thenReturn(BigDecimal.ZERO);
         stubStatusCounts(0, 0, 0, 0, 0);
         when(productRepository.countByStockLessThanEqual(anyInt())).thenReturn(0L);
+        when(productRepository.countByStock(0)).thenReturn(0L);
         when(orderRepository.findAllByOrderByCreatedAtDesc(any())).thenReturn(Page.empty());
-        when(orderItemRepository.findTopSellingProducts(any(), any())).thenReturn(List.of());
+        when(orderItemRepository.findTopSellingProductsInRange(any(), any(), any(), any())).thenReturn(List.of());
+        when(orderItemRepository.findTopCategoriesInRange(any(), any(), any(), any())).thenReturn(List.of());
+        when(orderRepository.findOrdersInRange(any(), any(), any())).thenReturn(List.of());
 
         DashboardResponse response = dashboardService.getDashboard(adminUser.getEmail());
 
@@ -317,12 +382,15 @@ class AdminDashboardServiceTest {
         when(userRepository.count()).thenReturn(1L);
         when(productRepository.count()).thenReturn(1L);
         when(categoryRepository.count()).thenReturn(1L);
-        when(orderRepository.count()).thenReturn(1L);
-        when(orderRepository.sumTotalAmountExcludingStatus(any())).thenReturn(BigDecimal.valueOf(100));
+        when(orderRepository.countByCreatedAtBetween(any(), any())).thenReturn(1L);
+        when(orderRepository.sumTotalAmountExcludingStatusAndDateRange(any(), any(), any())).thenReturn(BigDecimal.valueOf(100));
         stubStatusCounts(0, 0, 0, 1, 0);
         when(productRepository.countByStockLessThanEqual(anyInt())).thenReturn(0L);
+        when(productRepository.countByStock(0)).thenReturn(0L);
         when(orderRepository.findAllByOrderByCreatedAtDesc(any())).thenReturn(Page.empty());
-        when(orderItemRepository.findTopSellingProducts(any(), any())).thenReturn(List.of());
+        when(orderItemRepository.findTopSellingProductsInRange(any(), any(), any(), any())).thenReturn(List.of());
+        when(orderItemRepository.findTopCategoriesInRange(any(), any(), any(), any())).thenReturn(List.of());
+        when(orderRepository.findOrdersInRange(any(), any(), any())).thenReturn(List.of());
     }
 
     private void stubStatusCounts(long pending, long confirmed, long shipped, long delivered, long cancelled) {

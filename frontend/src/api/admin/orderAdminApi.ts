@@ -2,8 +2,14 @@ import axiosClient from '../axiosClient';
 import type { Order, OrderStatus } from '../../types';
 
 export const orderAdminApi = {
-  getAllOrders: async (): Promise<Order[]> => {
-    const response = await axiosClient.get<Order[]>('/admin/orders');
+  getAllOrders: async (status?: OrderStatus, search?: string): Promise<Order[]> => {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (search && search.trim()) params.append('search', search.trim());
+
+    const queryString = params.toString();
+    const url = `/admin/orders${queryString ? `?${queryString}` : ''}`;
+    const response = await axiosClient.get<Order[]>(url);
     return response.data;
   },
 

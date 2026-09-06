@@ -30,6 +30,9 @@ const CouponFormContent: React.FC<CouponFormContentProps> = ({
     discountValue: coupon?.discountValue || 10,
     maxUsageLimit: coupon?.maxUsageLimit || undefined,
     minOrderAmount: coupon?.minOrderAmount || 0,
+    maxDiscountAmount: coupon?.maxDiscountAmount || undefined,
+    perUserLimit: coupon?.perUserLimit || 1,
+    firstOrderOnly: coupon?.firstOrderOnly ?? false,
   }));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,7 +54,7 @@ const CouponFormContent: React.FC<CouponFormContentProps> = ({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="relative z-10 w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4"
+        className="relative z-10 w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -105,15 +108,16 @@ const CouponFormContent: React.FC<CouponFormContentProps> = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-slate-700 dark:text-slate-300 block mb-1 font-semibold">Max Usage Limit</label>
+              <label className="text-slate-700 dark:text-slate-300 block mb-1 font-semibold">Max Discount Cap ($)</label>
               <input
                 type="number"
-                min="1"
-                value={formData.maxUsageLimit || ''}
+                step="0.01"
+                min="0"
+                value={formData.maxDiscountAmount || ''}
                 onChange={(e) =>
-                  setFormData({ ...formData, maxUsageLimit: e.target.value ? parseInt(e.target.value) : undefined })
+                  setFormData({ ...formData, maxDiscountAmount: e.target.value ? parseFloat(e.target.value) : undefined })
                 }
-                placeholder="e.g. 100"
+                placeholder="e.g. 50 (for % coupons)"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-brand-500 outline-none"
               />
             </div>
@@ -132,6 +136,50 @@ const CouponFormContent: React.FC<CouponFormContentProps> = ({
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-brand-500 outline-none"
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-slate-700 dark:text-slate-300 block mb-1 font-semibold">Total Usage Limit</label>
+              <input
+                type="number"
+                min="1"
+                value={formData.maxUsageLimit || ''}
+                onChange={(e) =>
+                  setFormData({ ...formData, maxUsageLimit: e.target.value ? parseInt(e.target.value) : undefined })
+                }
+                placeholder="e.g. 100"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-brand-500 outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-slate-700 dark:text-slate-300 block mb-1 font-semibold">Per-User Usage Limit</label>
+              <input
+                type="number"
+                min="1"
+                value={formData.perUserLimit || ''}
+                onChange={(e) =>
+                  setFormData({ ...formData, perUserLimit: e.target.value ? parseInt(e.target.value) : 1 })
+                }
+                placeholder="e.g. 1"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-brand-500 outline-none"
+              />
+            </div>
+          </div>
+
+          {/* First Order Only Checkbox */}
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center justify-between">
+            <div>
+              <span className="font-semibold text-slate-800 dark:text-slate-200 block">First Order Only</span>
+              <span className="text-[11px] text-slate-400">Restrict coupon to new customers on their first order</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={formData.firstOrderOnly || false}
+              onChange={(e) => setFormData({ ...formData, firstOrderOnly: e.target.checked })}
+              className="w-4 h-4 text-brand-600 rounded border-slate-300 dark:border-slate-700 focus:ring-brand-500"
+            />
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">

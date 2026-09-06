@@ -5,6 +5,7 @@ import {
   Edit2,
   ToggleLeft,
   ToggleRight,
+  Sparkles,
 } from 'lucide-react';
 import { useAdminCoupons } from '../../hooks/admin/useAdminCoupons';
 import CouponFormModal from '../../components/admin/CouponFormModal';
@@ -51,16 +52,16 @@ export const AdminCouponsPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-pulse">
+      <div className="space-y-6 animate-pulse p-4 sm:p-6">
         <div className="w-48 h-8 bg-slate-200 dark:bg-slate-800 rounded mb-4" />
-        <div className="h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl" />
+        <div className="h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6" />
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="max-w-md mx-auto py-20">
+      <div className="max-w-md mx-auto py-20 p-4">
         <ErrorState
           title="Failed to Load Coupons"
           description="Could not retrieve coupon list from server."
@@ -71,15 +72,15 @@ export const AdminCouponsPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-2 sm:p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
             <Tag className="w-7 h-7 text-brand-500 dark:text-brand-400" /> Coupon Management
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Create and manage promotional discount codes — {coupons.length} total
+            Create and manage promotional discount rules, per-user limits, and caps — {coupons.length} total
           </p>
         </div>
 
@@ -102,8 +103,8 @@ export const AdminCouponsPage: React.FC = () => {
                 <th className="px-6 py-4">Code</th>
                 <th className="px-6 py-4">Type</th>
                 <th className="px-6 py-4">Discount</th>
-                <th className="px-6 py-4">Min Order</th>
-                <th className="px-6 py-4">Usage</th>
+                <th className="px-6 py-4">Restrictions</th>
+                <th className="px-6 py-4">Usage Limits</th>
                 <th className="px-6 py-4">Expires</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4 text-right">Actions</th>
@@ -132,9 +133,16 @@ export const AdminCouponsPage: React.FC = () => {
                     <tr key={coupon.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                       {/* Code */}
                       <td className="px-6 py-4">
-                        <span className="font-mono font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg text-sm tracking-wider">
-                          {coupon.code}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg text-sm tracking-wider">
+                            {coupon.code}
+                          </span>
+                          {coupon.firstOrderOnly && (
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-800/40">
+                              <Sparkles className="w-3 h-3" /> 1st Order
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Type */}
@@ -142,23 +150,37 @@ export const AdminCouponsPage: React.FC = () => {
                         {coupon.discountType === 'PERCENTAGE' ? 'Percentage' : 'Fixed Amount'}
                       </td>
 
-                      {/* Discount Value */}
-                      <td className="px-6 py-4 font-bold text-brand-600 dark:text-brand-400">
-                        {coupon.discountType === 'PERCENTAGE'
-                          ? `${coupon.discountValue}%`
-                          : `$${Number(coupon.discountValue).toFixed(2)}`}
+                      {/* Discount Value & Max Cap */}
+                      <td className="px-6 py-4">
+                        <span className="font-bold text-brand-600 dark:text-brand-400 text-sm">
+                          {coupon.discountType === 'PERCENTAGE'
+                            ? `${coupon.discountValue}%`
+                            : `$${Number(coupon.discountValue).toFixed(2)}`}
+                        </span>
+                        {coupon.maxDiscountAmount != null && coupon.maxDiscountAmount > 0 && (
+                          <span className="block text-[10px] text-slate-400 font-medium">
+                            Cap: ${Number(coupon.maxDiscountAmount).toFixed(2)}
+                          </span>
+                        )}
                       </td>
 
-                      {/* Min Order Amount */}
+                      {/* Restrictions: Min Order */}
                       <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
-                        {coupon.minOrderAmount != null && coupon.minOrderAmount > 0
-                          ? `$${Number(coupon.minOrderAmount).toFixed(2)}`
-                          : '—'}
+                        {coupon.minOrderAmount != null && coupon.minOrderAmount > 0 ? (
+                          <span>Min: ${Number(coupon.minOrderAmount).toFixed(2)}</span>
+                        ) : (
+                          <span className="text-slate-400">No min</span>
+                        )}
                       </td>
 
-                      {/* Usage */}
+                      {/* Usage & Per-user limit */}
                       <td className="px-6 py-4 text-slate-500 dark:text-slate-400 font-mono text-[11px]">
-                        {usageDisplay}
+                        <div>Total: {usageDisplay}</div>
+                        {coupon.perUserLimit && (
+                          <div className="text-[10px] text-slate-400 font-sans">
+                            {coupon.perUserLimit}/user limit
+                          </div>
+                        )}
                       </td>
 
                       {/* Expiration */}

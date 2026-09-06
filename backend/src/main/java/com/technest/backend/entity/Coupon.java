@@ -45,7 +45,40 @@ public class Coupon {
     @Column
     private BigDecimal minOrderAmount;
 
+    @Column
+    private BigDecimal maxDiscountAmount;
+
+    @Column
+    private Integer perUserLimit;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean firstOrderOnly = false;
+
     public Coupon() {
+    }
+
+    public BigDecimal getMaxDiscountAmount() {
+        return maxDiscountAmount;
+    }
+
+    public void setMaxDiscountAmount(BigDecimal maxDiscountAmount) {
+        this.maxDiscountAmount = maxDiscountAmount;
+    }
+
+    public Integer getPerUserLimit() {
+        return perUserLimit;
+    }
+
+    public void setPerUserLimit(Integer perUserLimit) {
+        this.perUserLimit = perUserLimit;
+    }
+
+    public boolean isFirstOrderOnly() {
+        return firstOrderOnly;
+    }
+
+    public void setFirstOrderOnly(boolean firstOrderOnly) {
+        this.firstOrderOnly = firstOrderOnly;
     }
 
     public Long getId() {

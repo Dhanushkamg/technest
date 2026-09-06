@@ -7,6 +7,21 @@ export interface TopSellingProduct {
   totalRevenue: number;
 }
 
+export interface TopCategory {
+  categoryId: number;
+  categoryName: string;
+  totalRevenue: number;
+  totalQuantitySold: number;
+}
+
+export interface RevenueTimelinePoint {
+  date: string;
+  revenue: number;
+  orderCount: number;
+}
+
+export type DashboardDateRange = 'TODAY' | 'LAST_7_DAYS' | 'LAST_30_DAYS' | 'LAST_3_MONTHS' | 'LAST_1_YEAR' | 'CUSTOM';
+
 export interface DashboardResponse {
   totalUsers: number;
   totalProducts: number;
@@ -19,6 +34,10 @@ export interface DashboardResponse {
   deliveredOrders: number;
   cancelledOrders: number;
   lowStockProducts: number;
+  outOfStockProducts: number;
+  dateFilter: string;
   recentOrders: Order[];
   topSellingProducts: TopSellingProduct[];
+  topCategories: TopCategory[];
+  revenueTimeline: RevenueTimelinePoint[];
 }

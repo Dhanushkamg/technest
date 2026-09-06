@@ -25,13 +25,16 @@ public class AdminProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final InventoryService inventoryService;
 
     public AdminProductService(ProductRepository productRepository,
                                CategoryRepository categoryRepository,
-                               UserRepository userRepository) {
+                               UserRepository userRepository,
+                               InventoryService inventoryService) {
         this.productRepository  = productRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository     = userRepository;
+        this.inventoryService   = inventoryService;
     }
 
     // ---------------------------------------------------------
@@ -67,22 +70,38 @@ public class AdminProductService {
     public ProductResponse createProduct(String email, ProductRequest request) {
         requireAdmin(email);
 
-        if (request.getStock() != null && request.getStock() < 0) {
-            throw new BadRequestException("Stock must not be negative");
+        if (request == null) {
+            throw new BadRequestException("Product payload is required");
         }
 
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Category not found with id: " + request.getCategoryId()));
 
+        if (request.getPrice() != null && request.getPrice().compareTo(java.math.BigDecimal.ZERO) < 0) {
+            throw new BadRequestException("Price must not be negative");
+        }
+        if (request.getStock() != null && request.getStock() < 0) {
+            throw new BadRequestException("Stock must not be negative");
+        }
+
         Product product = new Product();
         product.setName(request.getName());
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
-        product.setStock(request.getStock());
+        product.setStock(request.getStock() != null ? request.getStock() : 0);
         product.setCategory(category);
 
-        return toResponse(productRepository.save(product));
+        Product saved = productRepository.save(product);
+        if (saved.getStock() > 0) {
+            inventoryService.recordMovement(
+                    saved, 0, saved.getStock(), saved.getStock(),
+                    com.technest.backend.entity.MovementType.PURCHASE,
+                    "Initial product creation", email
+            );
+        }
+
+        return toResponse(saved);
     }
 
     // ---------------------------------------------------------
@@ -93,8 +112,8 @@ public class AdminProductService {
     public ProductResponse updateProduct(String email, Long productId, ProductRequest request) {
         requireAdmin(email);
 
-        if (request.getStock() != null && request.getStock() < 0) {
-            throw new BadRequestException("Stock must not be negative");
+        if (request == null) {
+            throw new BadRequestException("Product payload is required");
         }
 
         Product product = productRepository.findById(productId)
@@ -105,13 +124,34 @@ public class AdminProductService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Category not found with id: " + request.getCategoryId()));
 
+        if (request.getPrice() != null && request.getPrice().compareTo(java.math.BigDecimal.ZERO) < 0) {
+            throw new BadRequestException("Price must not be negative");
+        }
+        if (request.getStock() != null && request.getStock() < 0) {
+            throw new BadRequestException("Stock must not be negative");
+        }
+
+        int oldStock = product.getStock();
+        int newStock = request.getStock() != null ? request.getStock() : oldStock;
+
         product.setName(request.getName());
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
-        product.setStock(request.getStock());
+        product.setStock(newStock);
         product.setCategory(category);
 
-        return toResponse(productRepository.save(product));
+        Product saved = productRepository.save(product);
+
+        if (newStock != oldStock) {
+            int diff = newStock - oldStock;
+            inventoryService.recordMovement(
+                    saved, oldStock, diff, newStock,
+                    diff > 0 ? com.technest.backend.entity.MovementType.RESTOCK : com.technest.backend.entity.MovementType.ADJUSTMENT,
+                    "Product edit stock change", email
+            );
+        }
+
+        return toResponse(saved);
     }
 
     // ---------------------------------------------------------
@@ -129,12 +169,11 @@ public class AdminProductService {
             throw new BadRequestException("Stock must not be negative. Received: " + request.getStock());
         }
 
+        inventoryService.updateStock(email, productId, request.getStock(), "Admin direct stock update");
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Product not found with id: " + productId));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
 
-        product.setStock(request.getStock());
-        return toResponse(productRepository.save(product));
+        return toResponse(product);
     }
 
     // ---------------------------------------------------------
@@ -149,18 +188,15 @@ public class AdminProductService {
             throw new BadRequestException("Adjustment quantity is required");
         }
 
+        com.technest.backend.dto.StockAdjustmentRequest sar = new com.technest.backend.dto.StockAdjustmentRequest(
+                productId, request.getQuantity(), request.getMovementType(), request.getReason()
+        );
+        inventoryService.adjustStock(email, productId, sar);
+
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Product not found with id: " + productId));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
 
-        int updatedStock = product.getStock() + request.getQuantity();
-        if (updatedStock < 0) {
-            throw new BadRequestException("Stock adjustment results in negative stock: " + updatedStock
-                    + " (current: " + product.getStock() + ", adjustment: " + request.getQuantity() + ")");
-        }
-
-        product.setStock(updatedStock);
-        return toResponse(productRepository.save(product));
+        return toResponse(product);
     }
 
     // ---------------------------------------------------------

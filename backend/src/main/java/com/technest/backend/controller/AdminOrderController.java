@@ -2,6 +2,7 @@ package com.technest.backend.controller;
 
 import com.technest.backend.dto.OrderDto;
 import com.technest.backend.dto.UpdateOrderStatusRequest;
+import com.technest.backend.entity.OrderStatus;
 import com.technest.backend.exception.BadRequestException;
 import com.technest.backend.service.AdminOrderService;
 import org.springframework.http.ResponseEntity;
@@ -37,8 +38,13 @@ public class AdminOrderController {
      * Only accessible by users with ADMIN role.
      */
     @GetMapping
-    public ResponseEntity<List<OrderDto>> getAllOrders() {
+    public ResponseEntity<List<OrderDto>> getAllOrders(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) OrderStatus status,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String search) {
         String email = getAuthenticatedUserEmail();
+        if (status != null || (search != null && !search.trim().isEmpty())) {
+            return ResponseEntity.ok(adminOrderService.searchOrders(email, status, search));
+        }
         List<OrderDto> orders = adminOrderService.getAllOrders(email);
         return ResponseEntity.ok(orders);
     }

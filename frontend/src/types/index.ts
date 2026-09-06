@@ -11,3 +11,4 @@ export * from './dashboard';
 export * from './address';
 export * from './coupon';
 export * from './couponValidation';
+export * from './inventory';

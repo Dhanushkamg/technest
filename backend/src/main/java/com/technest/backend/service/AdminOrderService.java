@@ -56,6 +56,17 @@ public class AdminOrderService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<OrderDto> searchOrders(String email, OrderStatus status, String search) {
+        resolveAdminUser(email);
+        String searchParam = (search != null && !search.trim().isEmpty()) ? "%" + search.trim().toLowerCase() + "%" : null;
+        return orderRepository.searchOrders(status, searchParam, org.springframework.data.domain.Pageable.unpaged())
+                .getContent()
+                .stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
     // =========================
     // CANCEL ORDER (admin)
     // =========================

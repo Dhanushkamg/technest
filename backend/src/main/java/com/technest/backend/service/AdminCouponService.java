@@ -60,6 +60,9 @@ public class AdminCouponService {
         coupon.setExpirationDate(request.getExpirationDate());
         coupon.setMaxUsageLimit(request.getMaxUsageLimit());
         coupon.setMinOrderAmount(request.getMinOrderAmount());
+        coupon.setMaxDiscountAmount(request.getMaxDiscountAmount());
+        coupon.setPerUserLimit(request.getPerUserLimit());
+        coupon.setFirstOrderOnly(request.getFirstOrderOnly() != null ? request.getFirstOrderOnly() : false);
 
         Coupon savedCoupon = couponRepository.save(coupon);
         return mapToDto(savedCoupon);
@@ -104,6 +107,11 @@ public class AdminCouponService {
         coupon.setExpirationDate(request.getExpirationDate());
         coupon.setMaxUsageLimit(request.getMaxUsageLimit());
         coupon.setMinOrderAmount(request.getMinOrderAmount());
+        coupon.setMaxDiscountAmount(request.getMaxDiscountAmount());
+        coupon.setPerUserLimit(request.getPerUserLimit());
+        if (request.getFirstOrderOnly() != null) {
+            coupon.setFirstOrderOnly(request.getFirstOrderOnly());
+        }
 
         Coupon savedCoupon = couponRepository.save(coupon);
         return mapToDto(savedCoupon);
@@ -129,7 +137,10 @@ public class AdminCouponService {
                 coupon.getExpirationDate(),
                 coupon.getMaxUsageLimit(),
                 coupon.getUsageCount(),
-                coupon.getMinOrderAmount()
+                coupon.getMinOrderAmount(),
+                coupon.getMaxDiscountAmount(),
+                coupon.getPerUserLimit(),
+                coupon.isFirstOrderOnly()
         );
     }
 }

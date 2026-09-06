@@ -10,6 +10,9 @@ export interface Coupon {
   maxUsageLimit?: number | null;
   usageCount: number;
   minOrderAmount?: number | null;
+  maxDiscountAmount?: number | null;
+  perUserLimit?: number | null;
+  firstOrderOnly?: boolean;
 }
 
 export interface CreateCouponRequest {
@@ -19,6 +22,9 @@ export interface CreateCouponRequest {
   expirationDate?: string | null;
   maxUsageLimit?: number | null;
   minOrderAmount?: number | null;
+  maxDiscountAmount?: number | null;
+  perUserLimit?: number | null;
+  firstOrderOnly?: boolean;
 }
 
 export interface UpdateCouponRequest {
@@ -28,6 +34,9 @@ export interface UpdateCouponRequest {
   expirationDate?: string | null;
   maxUsageLimit?: number | null;
   minOrderAmount?: number | null;
+  maxDiscountAmount?: number | null;
+  perUserLimit?: number | null;
+  firstOrderOnly?: boolean;
 }
 
 export interface UpdateCouponStatusRequest {

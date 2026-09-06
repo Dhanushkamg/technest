@@ -44,6 +44,7 @@ public class OrderService {
     private final NotificationService notificationService;
     private final com.technest.backend.repository.CouponRepository couponRepository;
     private final PaymentRepository paymentRepository;
+    private final InventoryService inventoryService;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -53,7 +54,8 @@ public class OrderService {
             AddressRepository addressRepository,
             NotificationService notificationService,
             com.technest.backend.repository.CouponRepository couponRepository,
-            PaymentRepository paymentRepository) {
+            PaymentRepository paymentRepository,
+            InventoryService inventoryService) {
 
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
@@ -63,6 +65,7 @@ public class OrderService {
         this.notificationService = notificationService;
         this.couponRepository = couponRepository;
         this.paymentRepository = paymentRepository;
+        this.inventoryService = inventoryService;
     }
 
     // =========================
@@ -178,11 +181,21 @@ public class OrderService {
             if (appliedCoupon.getMinOrderAmount() != null && subtotal.compareTo(appliedCoupon.getMinOrderAmount()) < 0) {
                 throw new BadRequestException("Minimum order amount for this coupon not met");
             }
+            if (appliedCoupon.isFirstOrderOnly() && orderRepository.countByUserAndStatusNot(user, OrderStatus.CANCELLED) > 0) {
+                throw new BadRequestException("Coupon is only valid for your first order");
+            }
+            if (appliedCoupon.getPerUserLimit() != null && orderRepository.countByUserAndCouponCodeIgnoreCase(user, normalizedCode) >= appliedCoupon.getPerUserLimit()) {
+                throw new BadRequestException("Coupon usage limit per user reached");
+            }
 
             if (appliedCoupon.getDiscountType() == com.technest.backend.entity.DiscountType.PERCENTAGE) {
                 discountAmount = subtotal.multiply(appliedCoupon.getDiscountValue()).divide(BigDecimal.valueOf(100));
             } else if (appliedCoupon.getDiscountType() == com.technest.backend.entity.DiscountType.FIXED_AMOUNT) {
                 discountAmount = appliedCoupon.getDiscountValue();
+            }
+
+            if (appliedCoupon.getMaxDiscountAmount() != null && discountAmount.compareTo(appliedCoupon.getMaxDiscountAmount()) > 0) {
+                discountAmount = appliedCoupon.getMaxDiscountAmount();
             }
 
             if (discountAmount.compareTo(subtotal) > 0) {
@@ -201,6 +214,16 @@ public class OrderService {
 
         // Save order
         Order savedOrder = orderRepository.save(order);
+
+        // Record inventory SALE movements
+        for (CartItem cartItem : sortedItems) {
+            Product product = lockedProducts.get(cartItem.getProduct().getId());
+            inventoryService.recordMovement(
+                    product, product.getStock() + cartItem.getQuantity(), -cartItem.getQuantity(), product.getStock(),
+                    com.technest.backend.entity.MovementType.SALE,
+                    "Order #" + savedOrder.getId(), user.getEmail()
+            );
+        }
 
         // Clear cart after successful checkout
         cart.getItems().clear();
@@ -337,8 +360,16 @@ public class OrderService {
         // Restore stock
         for (OrderItem item : order.getItems()) {
             Product lockedProduct = lockedProducts.get(item.getProduct().getId());
-            lockedProduct.setStock(lockedProduct.getStock() + item.getQuantity());
+            int oldStock = lockedProduct.getStock();
+            int newStock = oldStock + item.getQuantity();
+            lockedProduct.setStock(newStock);
             productRepository.save(lockedProduct);
+
+            inventoryService.recordMovement(
+                    lockedProduct, oldStock, item.getQuantity(), newStock,
+                    com.technest.backend.entity.MovementType.RETURN,
+                    "Order #" + order.getId() + " cancellation", order.getUser().getEmail()
+            );
         }
 
         // Refund payment if present and SUCCESS

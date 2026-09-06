@@ -51,6 +51,7 @@ class OrderCancellationServiceTest {
     @Mock private NotificationService notificationService;
     @Mock private CouponRepository couponRepository;
     @Mock private PaymentRepository paymentRepository;
+    @Mock private InventoryService inventoryService;
 
     @InjectMocks
     private OrderService orderService;

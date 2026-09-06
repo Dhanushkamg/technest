@@ -1,6 +1,7 @@
 package com.technest.backend.dto;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DashboardResponse {
@@ -16,8 +17,12 @@ public class DashboardResponse {
     private long deliveredOrders;
     private long cancelledOrders;
     private long lowStockProducts;
-    private List<OrderDto> recentOrders;
-    private List<TopSellingProductDto> topSellingProducts;
+    private long outOfStockProducts;
+    private String dateFilter;
+    private List<OrderDto> recentOrders = new ArrayList<>();
+    private List<TopSellingProductDto> topSellingProducts = new ArrayList<>();
+    private List<RevenueTimelinePointDto> revenueTimeline = new ArrayList<>();
+    private List<TopCategoryDto> topCategories = new ArrayList<>();
 
     public DashboardResponse() {
     }
@@ -38,8 +43,8 @@ public class DashboardResponse {
         this.deliveredOrders = deliveredOrders;
         this.cancelledOrders = cancelledOrders;
         this.lowStockProducts = lowStockProducts;
-        this.recentOrders = recentOrders;
-        this.topSellingProducts = topSellingProducts;
+        this.recentOrders = recentOrders != null ? recentOrders : new ArrayList<>();
+        this.topSellingProducts = topSellingProducts != null ? topSellingProducts : new ArrayList<>();
     }
 
     public long getTotalUsers() { return totalUsers; }
@@ -75,9 +80,21 @@ public class DashboardResponse {
     public long getLowStockProducts() { return lowStockProducts; }
     public void setLowStockProducts(long lowStockProducts) { this.lowStockProducts = lowStockProducts; }
 
+    public long getOutOfStockProducts() { return outOfStockProducts; }
+    public void setOutOfStockProducts(long outOfStockProducts) { this.outOfStockProducts = outOfStockProducts; }
+
+    public String getDateFilter() { return dateFilter; }
+    public void setDateFilter(String dateFilter) { this.dateFilter = dateFilter; }
+
     public List<OrderDto> getRecentOrders() { return recentOrders; }
     public void setRecentOrders(List<OrderDto> recentOrders) { this.recentOrders = recentOrders; }
 
     public List<TopSellingProductDto> getTopSellingProducts() { return topSellingProducts; }
     public void setTopSellingProducts(List<TopSellingProductDto> topSellingProducts) { this.topSellingProducts = topSellingProducts; }
+
+    public List<RevenueTimelinePointDto> getRevenueTimeline() { return revenueTimeline; }
+    public void setRevenueTimeline(List<RevenueTimelinePointDto> revenueTimeline) { this.revenueTimeline = revenueTimeline; }
+
+    public List<TopCategoryDto> getTopCategories() { return topCategories; }
+    public void setTopCategories(List<TopCategoryDto> topCategories) { this.topCategories = topCategories; }
 }

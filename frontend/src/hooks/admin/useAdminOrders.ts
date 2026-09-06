@@ -5,15 +5,15 @@ import { orderAdminApi } from '../../api/admin/orderAdminApi';
 import type { OrderStatus } from '../../types';
 import { useAuthStore } from '../../store/useAuthStore';
 
-export const useAdminOrders = () => {
+export const useAdminOrders = (status?: OrderStatus, search?: string) => {
   const queryClient = useQueryClient();
   const { isAuthenticated, user } = useAuthStore();
   const roleUpper = (user?.role || '').toUpperCase();
   const isAdmin = roleUpper === 'ROLE_ADMIN' || roleUpper === 'ADMIN';
 
   const ordersQuery = useQuery({
-    queryKey: ['adminOrders'],
-    queryFn: orderAdminApi.getAllOrders,
+    queryKey: ['adminOrders', status, search],
+    queryFn: () => orderAdminApi.getAllOrders(status, search),
     enabled: isAuthenticated && isAdmin,
     staleTime: 1000 * 60 * 2,
   });

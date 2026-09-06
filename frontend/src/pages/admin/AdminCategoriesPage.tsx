@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Layers, Plus, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import { useAdminCategories } from '../../hooks/admin/useAdminCategories';
 import CategoryFormModal from '../../components/admin/CategoryFormModal';
 import { ErrorState } from '../../components/ui/ErrorState';
@@ -18,10 +18,12 @@ export const AdminCategoriesPage: React.FC = () => {
     updateCategory,
     isUpdatingCategory,
     deleteCategory,
+    isDeletingCategory,
   } = useAdminCategories();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
   const handleOpenAddModal = () => {
     setEditingCategory(null);
@@ -42,9 +44,20 @@ export const AdminCategoriesPage: React.FC = () => {
     setIsModalOpen(false);
   };
 
+  const handleDeleteConfirm = async () => {
+    if (categoryToDelete) {
+      try {
+        await deleteCategory(categoryToDelete.id);
+        setCategoryToDelete(null);
+      } catch {
+        // Handled by onError in mutation hook
+      }
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-pulse">
+      <div className="space-y-6 animate-pulse p-4 sm:p-6">
         <div className="w-48 h-8 bg-slate-200 dark:bg-slate-800 rounded mb-4" />
         <div className="h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6" />
       </div>
@@ -53,7 +66,7 @@ export const AdminCategoriesPage: React.FC = () => {
 
   if (isError) {
     return (
-      <div className="max-w-md mx-auto py-20">
+      <div className="max-w-md mx-auto py-20 p-4">
         <ErrorState
           title="Failed to Load Categories"
           description="Could not retrieve category list from admin server."
@@ -64,14 +77,16 @@ export const AdminCategoriesPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-2 sm:p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
             <Layers className="w-7 h-7 text-brand-500 dark:text-brand-400" /> Category Management
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Organize product classification and navigation structure</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Organize product classification and navigation structure
+          </p>
         </div>
 
         <Button
@@ -120,7 +135,7 @@ export const AdminCategoriesPage: React.FC = () => {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => deleteCategory(cat.id)}
+                          onClick={() => setCategoryToDelete(cat)}
                           className="p-2 rounded-xl text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
                           title="Delete Category"
                         >
@@ -144,6 +159,37 @@ export const AdminCategoriesPage: React.FC = () => {
         category={editingCategory}
         isLoading={isCreatingCategory || isUpdatingCategory}
       />
+
+      {/* Delete Confirmation Modal */}
+      {categoryToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-2 text-rose-600">
+              <AlertTriangle className="w-5 h-5" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Delete Category?</h3>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              Are you sure you want to delete <strong className="text-slate-900 dark:text-white">{categoryToDelete.name}</strong>?
+              If any active products are assigned to this category, deletion will be rejected to protect catalog relationships.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setCategoryToDelete(null)}
+                className="px-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={isDeletingCategory}
+                className="px-4 py-2 text-xs rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold disabled:opacity-50"
+              >
+                {isDeletingCategory ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
