@@ -1,4 +1,4 @@
-﻿# TechNest — Full-Stack E-Commerce Application
+# TechNest — Full-Stack E-Commerce Application
 
 TechNest is a full-stack e-commerce application built with a React frontend and a Spring Boot backend. It supports product browsing, cart management, wishlist, order placement, payment processing (including PayHere sandbox integration), user authentication, admin management, and more.
 
@@ -171,12 +171,39 @@ npm run dev
 
 ---
 
-## Running Tests
+## Database Migrations (Flyway)
 
+Database schema versioning is managed via Flyway:
+- `V1__init_schema.sql` — Baseline schema for all tables, constraints, foreign keys, and sequences.
+- `V2__add_performance_indexes.sql` — Optimistic locking columns (`version`), deduplication keys, and composite performance query indexes.
+
+In production, Hibernate is configured to `validate` the schema against the entity model (`spring.jpa.hibernate.ddl-auto=validate`).
+
+---
+
+## Observability & Health
+
+- **Correlation IDs**: Incoming `X-Request-ID` is sanitized and logged via SLF4J MDC, returned in response headers.
+- **Actuator Health**: Safe liveness/readiness probes available at `/actuator/health` (internal environment and sensitive details are concealed).
+
+---
+
+## Running Tests & CI
+
+### Backend Tests
 ```bash
 cd backend
-./mvnw test
+./mvnw clean test
 ```
+
+### Frontend Lint & Build
+```bash
+cd frontend
+npm run lint
+npm run build
+```
+
+Automated CI is configured via GitHub Actions in `.github/workflows/ci.yml`.
 
 ---
 
