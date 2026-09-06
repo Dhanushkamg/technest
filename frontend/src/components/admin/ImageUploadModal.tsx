@@ -77,7 +77,7 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
               <img src={currentImage} alt={product.name} className="w-12 h-12 rounded object-cover border border-slate-200 dark:border-slate-700" />
               <div className="text-xs">
                 <p className="font-semibold text-slate-900 dark:text-white">Current Primary Image</p>
-                <p className="text-slate-500 line-clamp-1">{product.images?.[0] || 'Placeholder'}</p>
+                <p className="text-slate-500 line-clamp-1">{product.images?.[0]?.url || 'Placeholder'}</p>
               </div>
             </div>
 
