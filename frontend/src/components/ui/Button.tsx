@@ -11,6 +11,8 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   icon?: React.ReactNode | React.ElementType;
+  as?: any;
+  to?: string;
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
@@ -47,6 +49,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       className = '',
       disabled,
       type = 'button',
+      as,
       ...props
     },
     ref
@@ -67,10 +70,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       }
     }
 
+    const Component = as || 'button';
+
     return (
-      <button
+      <Component
         ref={ref}
-        type={type}
+        type={!as || as === 'button' ? type : undefined}
         disabled={disabled || isLoading}
         className={`inline-flex items-center justify-center font-medium transition-all duration-200 cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
         {...props}
@@ -82,7 +87,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         {children && <span>{children}</span>}
         {!isLoading && rightIcon}
-      </button>
+      </Component>
     );
   }
 );
