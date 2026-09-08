@@ -4,6 +4,7 @@ import { ShoppingBag, User, Heart, Cpu, LogOut, ShieldAlert, Package, ChevronDow
 import { Toaster, toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
+import { authApi } from '../api/authApi';
 import { useCartStore } from '../store/useCartStore';
 import { MiniCart } from '../components/cart/MiniCart';
 import { NotificationDropdown } from '../components/notification/NotificationDropdown';
