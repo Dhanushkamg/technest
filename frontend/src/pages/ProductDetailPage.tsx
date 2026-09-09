@@ -21,7 +21,7 @@ import {
 import { toast } from 'sonner';
 import { productApi } from '../api/productApi';
 import { getProductImages } from '../utils/productImages';
-import { ProductVariant } from '../types/product';
+import type { ProductVariant } from '../types/product';
 import RatingStars from '../components/common/RatingStars';
 import { useCart } from '../hooks/useCart';
 import { useAuthStore } from '../store/useAuthStore';
@@ -53,9 +53,6 @@ export const ProductDetailPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('specs');
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
 
-  const isWishlisted = product ? isInWishlist(product.id) : false;
-  const isWishlistPending = isAddingToWishlist || isRemovingFromWishlist;
-
   // Fetch product by ID
   const {
     data: product,
@@ -68,6 +65,9 @@ export const ProductDetailPage: React.FC = () => {
     queryFn: () => productApi.getProductById(productIdentifier),
     enabled: !!productIdentifier,
   });
+
+  const isWishlisted = product ? isInWishlist(product.id) : false;
+  const isWishlistPending = isAddingToWishlist || isRemovingFromWishlist;
 
   // Fetch related products using our new endpoint
   const { data: relatedData } = useRelatedProducts(productIdentifier);
