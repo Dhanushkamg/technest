@@ -5,20 +5,23 @@ import { Loader2 } from 'lucide-react';
 
 export const OAuth2RedirectHandler: React.FC = () => {
   const navigate = useNavigate();
-  const fetchProfile = useAuthStore((state) => state.fetchProfile);
+  const setUser = useAuthStore((state) => state.setUser);
 
   useEffect(() => {
     // The backend has already set the HttpOnly cookies for accessToken and refreshToken.
     // We just need to fetch the profile to populate the user state in the store.
-    fetchProfile()
-      .then(() => {
-        navigate('/profile', { replace: true });
-      })
-      .catch(() => {
-        // If it fails, cookies might not have been set properly
-        navigate('/login?error=oauth2', { replace: true });
-      });
-  }, [fetchProfile, navigate]);
+    import('../api/authApi').then(({ authApi }) => {
+      authApi.getProfile()
+        .then((user) => {
+          setUser(user);
+          navigate('/profile', { replace: true });
+        })
+        .catch(() => {
+          // If it fails, cookies might not have been set properly
+          navigate('/login?error=oauth2', { replace: true });
+        });
+    });
+  }, [setUser, navigate]);
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center p-4">
