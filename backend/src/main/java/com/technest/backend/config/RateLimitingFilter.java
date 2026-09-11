@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Lightweight in-memory rate limiting filter protecting sensitive endpoints
- * (/api/auth/login, /api/auth/register, /api/coupons/validate) against abuse.
+ * (/api/v1/auth/login, /api/v1/auth/register, /api/v1/payments) against abuse.
  *
  * NOTE: This is an in-memory sliding window implementation.
  * Counters reset on application restart and are local to this node.
@@ -72,20 +72,24 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         int windowSeconds = 60;
         boolean isProtected = false;
 
-        if (uri.startsWith("/api/auth/login") || uri.startsWith("/api/auth/register")) {
+        if (uri.startsWith("/api/v1/auth/login") || uri.startsWith("/api/v1/auth/register")) {
             maxRequests = authMaxRequests;
             windowSeconds = authWindowSeconds;
             isProtected = true;
-        } else if (uri.startsWith("/api/coupons/validate")) {
+        } else if (uri.startsWith("/api/v1/coupons/validate")) {
             maxRequests = couponMaxRequests;
             windowSeconds = couponWindowSeconds;
+            isProtected = true;
+        } else if (uri.startsWith("/api/v1/payments")) {
+            maxRequests = 20; // Default limit for payments
+            windowSeconds = 60;
             isProtected = true;
         }
 
         if (isProtected) {
             final int windowSecs = windowSeconds;
             String clientIp = resolveClientIp(request);
-            String bucketKey = clientIp + ":" + (uri.startsWith("/api/auth") ? "auth" : "coupon");
+            String bucketKey = clientIp + ":" + (uri.startsWith("/api/v1/auth") ? "auth" : uri.startsWith("/api/v1/payments") ? "payment" : "coupon");
 
             RateLimitBucket bucket = buckets.compute(bucketKey, (k, existing) -> {
                 long now = System.currentTimeMillis();
@@ -115,7 +119,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                         uri
                 );
 
-                response.getWriter().write(objectMapper.writeValueAsString(error));
+                com.technest.backend.dto.ApiResponse<ApiError> apiResponse = com.technest.backend.dto.ApiResponse.error(error);
+                response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
                 return;
             }
         }
