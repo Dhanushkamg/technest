@@ -20,6 +20,8 @@ export interface Product {
   reviewCount: number;
   createdAt?: string;
   variants?: ProductVariant[];
+  images?: { url: string; isPrimary: boolean }[];
+  imageUrl?: string;
 }
 
 export interface ProductRequest {
