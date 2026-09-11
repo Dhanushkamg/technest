@@ -8,6 +8,8 @@ export interface CartItem {
   stockQuantity?: number;
   variantId?: number;
   variantName?: string;
+  imageUrl?: string;
+  subtotal?: number;
 }
 
 // Matches CartDto from backend exactly
