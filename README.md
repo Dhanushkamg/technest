@@ -143,7 +143,7 @@ npm install
 
 2. **Configure the API URL** in `frontend/.env`:
 ```
-VITE_API_BASE_URL=http://localhost:8080/api
+VITE_API_BASE_URL=http://localhost:8080/api/v1
 ```
 
 3. **Run the dev server:**
@@ -165,6 +165,8 @@ npm run dev
 | `PAYHERE_NOTIFY_URL` | `backend/.env` | Public PayHere notify webhook URL |
 | `PAYHERE_CURRENCY` | `backend/.env` | Payment currency (default: LKR) |
 | `PAYHERE_RETURN_URL` | `backend/.env` | Redirect after successful payment |
+| `JWT_SECRET` | `backend/.env` | Secret key for JWT signing |
+| `JWT_EXPIRATION` | `backend/.env` | Expiration time for JWT in milliseconds |
 | `PAYHERE_CANCEL_URL` | `backend/.env` | Redirect if payment is cancelled |
 
 > WARNING: Never commit .env files containing real credentials to version control.
