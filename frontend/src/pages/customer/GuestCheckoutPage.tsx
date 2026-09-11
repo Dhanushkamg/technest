@@ -149,3 +149,5 @@ export const GuestCheckoutPage: React.FC = () => {
     </div>
   );
 };
+
+export default GuestCheckoutPage;
