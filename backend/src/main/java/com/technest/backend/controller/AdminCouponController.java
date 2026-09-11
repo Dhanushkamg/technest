@@ -1,5 +1,7 @@
 package com.technest.backend.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import com.technest.backend.dto.CouponResponse;
 import com.technest.backend.dto.CreateCouponRequest;
 import com.technest.backend.dto.UpdateCouponRequest;
@@ -21,7 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/admin/coupons")
+@RequestMapping("/api/v1/admin/coupons")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminCouponController {
 
     private final AdminCouponService adminCouponService;

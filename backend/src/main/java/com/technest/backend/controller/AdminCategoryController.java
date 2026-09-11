@@ -1,5 +1,7 @@
 package com.technest.backend.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import com.technest.backend.dto.CategoryRequest;
 import com.technest.backend.dto.CategoryResponse;
 import com.technest.backend.service.AdminCategoryService;
@@ -19,7 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/admin/categories")
+@RequestMapping("/api/v1/admin/categories")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminCategoryController {
 
     private final AdminCategoryService adminCategoryService;

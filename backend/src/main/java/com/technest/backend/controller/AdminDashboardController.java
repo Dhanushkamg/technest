@@ -1,5 +1,7 @@
 package com.technest.backend.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import com.technest.backend.dto.DashboardResponse;
 import com.technest.backend.service.AdminDashboardService;
 import org.springframework.http.ResponseEntity;
@@ -10,7 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/admin/dashboard")
+@RequestMapping("/api/v1/admin/dashboard")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminDashboardController {
 
     private final AdminDashboardService dashboardService;
