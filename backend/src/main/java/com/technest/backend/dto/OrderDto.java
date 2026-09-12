@@ -17,11 +17,13 @@ public class OrderDto {
     private LocalDateTime createdAt;
     private DeliveryAddressSnapshotDto deliveryAddress;
     private List<OrderItemDto> items;
+    private String guestEmail;
+    private String guestToken;
 
     public OrderDto() {
     }
 
-    public OrderDto(Long id, Long userId, BigDecimal subtotal, BigDecimal discountAmount, String couponCode, BigDecimal totalAmount, OrderStatus status, LocalDateTime createdAt, DeliveryAddressSnapshotDto deliveryAddress, List<OrderItemDto> items) {
+    public OrderDto(Long id, Long userId, BigDecimal subtotal, BigDecimal discountAmount, String couponCode, BigDecimal totalAmount, OrderStatus status, LocalDateTime createdAt, String guestEmail, String guestToken, DeliveryAddressSnapshotDto deliveryAddress, List<OrderItemDto> items) {
         this.id = id;
         this.userId = userId;
         this.subtotal = subtotal;
@@ -30,6 +32,8 @@ public class OrderDto {
         this.totalAmount = totalAmount;
         this.status = status;
         this.createdAt = createdAt;
+        this.guestEmail = guestEmail;
+        this.guestToken = guestToken;
         this.deliveryAddress = deliveryAddress;
         this.items = items;
     }
@@ -112,5 +116,21 @@ public class OrderDto {
 
     public void setDeliveryAddress(DeliveryAddressSnapshotDto deliveryAddress) {
         this.deliveryAddress = deliveryAddress;
+    }
+
+    public String getGuestEmail() {
+        return guestEmail;
+    }
+
+    public void setGuestEmail(String guestEmail) {
+        this.guestEmail = guestEmail;
+    }
+
+    public String getGuestToken() {
+        return guestToken;
+    }
+
+    public void setGuestToken(String guestToken) {
+        this.guestToken = guestToken;
     }
 }
