@@ -62,7 +62,7 @@ const DEFAULT_FALLBACKS = [
 
 export function getProductImage(product: Partial<Product>): string {
   if (product.images && product.images.length > 0) {
-    return product.images[0];
+    return product.images[0].url;
   }
   const images = getProductImages(product);
   return images[0];
@@ -70,7 +70,7 @@ export function getProductImage(product: Partial<Product>): string {
 
 export function getProductImages(product: Partial<Product>): string[] {
   if (product.images && product.images.length > 0) {
-    return product.images;
+    return product.images.map(img => img.url);
   }
 
   const id = product.id || 1;
