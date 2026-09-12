@@ -10,9 +10,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @RestController
-@RequestMapping("/api/products")
+@RequestMapping("/api/v1/products")
 public class ProductController {
 
     private final ProductService       productService;
@@ -61,10 +62,17 @@ public class ProductController {
         return ResponseEntity.ok(result);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
-        ProductResponse product = productService.getProductByIdAsDto(id);
+    @GetMapping("/{identifier}")
+    public ResponseEntity<ProductResponse> getProductById(@PathVariable String identifier) {
+        ProductResponse product = productService.getProductByIdOrSlugAsDto(identifier);
         return ResponseEntity.ok(product);
+    }
+
+    @GetMapping("/{identifier}/related")
+    public ResponseEntity<List<ProductResponse>> getRelatedProducts(@PathVariable String identifier) {
+        Product product = productService.getProductByIdOrSlug(identifier);
+        List<ProductResponse> related = productSearchService.getRelatedProducts(product.getId());
+        return ResponseEntity.ok(related);
     }
 
     @PostMapping
