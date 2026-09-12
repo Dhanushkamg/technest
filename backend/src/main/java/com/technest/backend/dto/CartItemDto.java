@@ -9,6 +9,8 @@ public class CartItemDto {
     private BigDecimal price;
     private Integer quantity;
     private Integer stockQuantity;
+    private Long variantId;
+    private String variantName;
 
     public CartItemDto() {
     }
@@ -28,6 +30,17 @@ public class CartItemDto {
         this.price = price;
         this.quantity = quantity;
         this.stockQuantity = stockQuantity;
+    }
+
+    public CartItemDto(Long id, Long productId, String productName, BigDecimal price, Integer quantity, Integer stockQuantity, Long variantId, String variantName) {
+        this.id = id;
+        this.productId = productId;
+        this.productName = productName;
+        this.price = price;
+        this.quantity = quantity;
+        this.stockQuantity = stockQuantity;
+        this.variantId = variantId;
+        this.variantName = variantName;
     }
 
     public Long getId() {
@@ -76,5 +89,21 @@ public class CartItemDto {
 
     public void setStockQuantity(Integer stockQuantity) {
         this.stockQuantity = stockQuantity;
+    }
+
+    public Long getVariantId() {
+        return variantId;
+    }
+
+    public void setVariantId(Long variantId) {
+        this.variantId = variantId;
+    }
+
+    public String getVariantName() {
+        return variantName;
+    }
+
+    public void setVariantName(String variantName) {
+        this.variantName = variantName;
     }
 }
