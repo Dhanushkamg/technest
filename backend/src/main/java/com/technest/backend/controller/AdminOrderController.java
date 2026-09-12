@@ -1,5 +1,7 @@
 package com.technest.backend.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import com.technest.backend.dto.OrderDto;
 import com.technest.backend.dto.UpdateOrderStatusRequest;
 import com.technest.backend.entity.OrderStatus;
@@ -17,7 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/admin/orders")
+@RequestMapping("/api/v1/admin/orders")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminOrderController {
 
     private final AdminOrderService adminOrderService;
@@ -88,4 +91,5 @@ public class AdminOrderController {
     public ResponseEntity<OrderDto> cancelOrderPut(@PathVariable Long id) {
         return cancelOrderPost(id);
     }
+
 }

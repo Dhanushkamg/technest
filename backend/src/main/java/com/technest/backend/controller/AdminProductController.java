@@ -1,5 +1,7 @@
 package com.technest.backend.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import com.technest.backend.dto.AdjustStockRequest;
 import com.technest.backend.dto.ProductRequest;
 import com.technest.backend.dto.ProductResponse;
@@ -17,18 +19,24 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import com.technest.backend.service.ImageService;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/admin/products")
+@RequestMapping("/api/v1/admin/products")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminProductController {
 
     private final AdminProductService adminProductService;
+    private final ImageService imageService;
 
-    public AdminProductController(AdminProductService adminProductService) {
+    public AdminProductController(AdminProductService adminProductService, ImageService imageService) {
         this.adminProductService = adminProductService;
+        this.imageService = imageService;
     }
 
     private String getAuthenticatedUserEmail() {
@@ -107,5 +115,24 @@ public class AdminProductController {
         String email = getAuthenticatedUserEmail();
         adminProductService.deleteProduct(email, id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * POST /api/v1/admin/products/{id}/images
+     * Upload an image for a product
+     */
+    @PostMapping("/{id}/images")
+    public ResponseEntity<String> uploadProductImage(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "isPrimary", defaultValue = "false") Boolean isPrimary,
+            @RequestParam(value = "sortOrder", defaultValue = "0") Integer sortOrder) {
+        
+        String email = getAuthenticatedUserEmail();
+        String imageUrl = imageService.saveImageLocally(file);
+        
+        adminProductService.addProductImage(email, id, imageUrl, isPrimary, sortOrder);
+        
+        return ResponseEntity.ok(imageUrl);
     }
 }

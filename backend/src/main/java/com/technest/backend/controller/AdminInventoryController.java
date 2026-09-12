@@ -1,5 +1,7 @@
 package com.technest.backend.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import com.technest.backend.dto.InventoryMovementDto;
 import com.technest.backend.dto.StockAdjustmentRequest;
 import com.technest.backend.service.InventoryService;
@@ -20,7 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/admin/inventory")
+@RequestMapping("/api/v1/admin/inventory")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminInventoryController {
 
     private final InventoryService inventoryService;
