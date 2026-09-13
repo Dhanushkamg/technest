@@ -26,7 +26,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ApiError> handleResourceNotFoundException(
+    public ResponseEntity<com.technest.backend.dto.ApiResponse<ApiError>> handleResourceNotFoundException(
             ResourceNotFoundException exception,
             HttpServletRequest request) {
 
@@ -40,11 +40,11 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
-                .body(error);
+                .body(com.technest.backend.dto.ApiResponse.error(error));
     }
 
     @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<ApiError> handleBadRequestException(
+    public ResponseEntity<com.technest.backend.dto.ApiResponse<ApiError>> handleBadRequestException(
             BadRequestException exception,
             HttpServletRequest request) {
 
@@ -58,11 +58,11 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(error);
+                .body(com.technest.backend.dto.ApiResponse.error(error));
     }
 
     @ExceptionHandler(ForbiddenException.class)
-    public ResponseEntity<ApiError> handleForbiddenException(
+    public ResponseEntity<com.technest.backend.dto.ApiResponse<ApiError>> handleForbiddenException(
             ForbiddenException exception,
             HttpServletRequest request) {
 
@@ -76,11 +76,11 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
-                .body(error);
+                .body(com.technest.backend.dto.ApiResponse.error(error));
     }
 
     @ExceptionHandler(UnauthorizedException.class)
-    public ResponseEntity<ApiError> handleUnauthorizedException(
+    public ResponseEntity<com.technest.backend.dto.ApiResponse<ApiError>> handleUnauthorizedException(
             UnauthorizedException exception,
             HttpServletRequest request) {
 
@@ -94,11 +94,11 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
-                .body(error);
+                .body(com.technest.backend.dto.ApiResponse.error(error));
     }
 
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiError> handleHttpMessageNotReadableException(
+    public ResponseEntity<com.technest.backend.dto.ApiResponse<ApiError>> handleHttpMessageNotReadableException(
             org.springframework.http.converter.HttpMessageNotReadableException exception,
             HttpServletRequest request) {
 
@@ -112,11 +112,11 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(error);
+                .body(com.technest.backend.dto.ApiResponse.error(error));
     }
 
     @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiError> handleValidationException(
+    public ResponseEntity<com.technest.backend.dto.ApiResponse<ApiError>> handleValidationException(
             org.springframework.web.bind.MethodArgumentNotValidException exception,
             HttpServletRequest request) {
 
@@ -135,11 +135,11 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(error);
+                .body(com.technest.backend.dto.ApiResponse.error(error));
     }
 
     @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
-    public ResponseEntity<ApiError> handleOptimisticLockingFailureException(
+    public ResponseEntity<com.technest.backend.dto.ApiResponse<ApiError>> handleOptimisticLockingFailureException(
             org.springframework.orm.ObjectOptimisticLockingFailureException exception,
             HttpServletRequest request) {
 
@@ -153,11 +153,11 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
-                .body(error);
+                .body(com.technest.backend.dto.ApiResponse.error(error));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiError> handleGenericException(
+    public ResponseEntity<com.technest.backend.dto.ApiResponse<ApiError>> handleGenericException(
             Exception exception,
             HttpServletRequest request) {
 
@@ -177,6 +177,6 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(error);
+                .body(com.technest.backend.dto.ApiResponse.error(error));
     }
 }
