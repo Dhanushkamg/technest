@@ -31,9 +31,15 @@ public class Order {
     @Version
     private Long version;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "user_id", nullable = true)
     private User user;
+
+    @Column(name = "guest_email")
+    private String guestEmail;
+
+    @Column(name = "guest_token")
+    private String guestToken;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
@@ -77,6 +83,22 @@ public class Order {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public String getGuestEmail() {
+        return guestEmail;
+    }
+
+    public void setGuestEmail(String guestEmail) {
+        this.guestEmail = guestEmail;
+    }
+
+    public String getGuestToken() {
+        return guestToken;
+    }
+
+    public void setGuestToken(String guestToken) {
+        this.guestToken = guestToken;
     }
 
     public List<OrderItem> getItems() {

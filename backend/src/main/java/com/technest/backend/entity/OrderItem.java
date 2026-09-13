@@ -27,6 +27,13 @@ public class OrderItem {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @ManyToOne
+    @JoinColumn(name = "variant_id")
+    private ProductVariant variant;
+
+    @Column(name = "variant_name")
+    private String variantName;
+
     @Column(nullable = false)
     private String productName;
 
@@ -96,5 +103,21 @@ public class OrderItem {
 
     public void setSubtotal(BigDecimal subtotal) {
         this.subtotal = subtotal;
+    }
+
+    public ProductVariant getVariant() {
+        return variant;
+    }
+
+    public void setVariant(ProductVariant variant) {
+        this.variant = variant;
+    }
+
+    public String getVariantName() {
+        return variantName;
+    }
+
+    public void setVariantName(String variantName) {
+        this.variantName = variantName;
     }
 }
