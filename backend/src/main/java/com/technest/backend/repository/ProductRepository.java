@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -21,6 +22,8 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
      */
     boolean existsByCategoryId(Long categoryId);
 
+    Optional<Product> findBySlug(String slug);
+
     /**
      * Pessimistic write lock on product row to prevent race conditions / overselling
      * during concurrent checkouts.
@@ -28,6 +31,10 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Product p WHERE p.id = :id")
     Optional<Product> findByIdWithLock(@Param("id") Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Product p WHERE p.id IN :ids")
+    List<Product> findAllByIdWithLock(@Param("ids") List<Long> ids);
 
     /**
      * Dashboard: count products with stock at or below the given threshold.
@@ -38,4 +45,9 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
      * Dashboard: count products with exact stock (e.g. 0 for out-of-stock).
      */
     long countByStock(int stock);
+
+    /**
+     * Get related products based on category.
+     */
+    List<Product> findTop4ByCategoryIdAndIdNot(Long categoryId, Long productId);
 }
