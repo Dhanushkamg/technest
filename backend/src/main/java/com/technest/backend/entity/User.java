@@ -30,6 +30,12 @@ public class User {
     @Column
     private String phoneNumber;
 
+    @Column(nullable = false)
+    private boolean isVerified = false;
+
+    @Column(nullable = false)
+    private String authProvider = "LOCAL";
+
     public User() {
     }
 
@@ -79,5 +85,21 @@ public class User {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public boolean isVerified() {
+        return isVerified;
+    }
+
+    public void setVerified(boolean verified) {
+        isVerified = verified;
+    }
+
+    public String getAuthProvider() {
+        return authProvider;
+    }
+
+    public void setAuthProvider(String authProvider) {
+        this.authProvider = authProvider;
     }
 }
