@@ -6,5 +6,6 @@ public enum NotificationType {
     PAYMENT_SUCCESS,
     PAYMENT_FAILED,
     ORDER_CANCELLED,
-    REFUND_PROCESSED
+    REFUND_PROCESSED,
+    SYSTEM_ALERT
 }

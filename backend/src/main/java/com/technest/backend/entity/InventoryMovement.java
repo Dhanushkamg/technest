@@ -32,6 +32,10 @@ public class InventoryMovement {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @ManyToOne
+    @JoinColumn(name = "variant_id")
+    private ProductVariant variant;
+
     @Column(nullable = false)
     private Integer oldStock;
 
@@ -57,10 +61,11 @@ public class InventoryMovement {
     public InventoryMovement() {
     }
 
-    public InventoryMovement(Product product, Integer oldStock, Integer quantityChange,
+    public InventoryMovement(Product product, ProductVariant variant, Integer oldStock, Integer quantityChange,
                              Integer newStock, MovementType movementType, String reason,
                              String responsibleUser) {
         this.product = product;
+        this.variant = variant;
         this.oldStock = oldStock;
         this.quantityChange = quantityChange;
         this.newStock = newStock;
@@ -84,6 +89,14 @@ public class InventoryMovement {
 
     public void setProduct(Product product) {
         this.product = product;
+    }
+
+    public ProductVariant getVariant() {
+        return variant;
+    }
+
+    public void setVariant(ProductVariant variant) {
+        this.variant = variant;
     }
 
     public Integer getOldStock() {
