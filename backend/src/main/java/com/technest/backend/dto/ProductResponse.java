@@ -1,11 +1,13 @@
 package com.technest.backend.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public class ProductResponse {
 
     private Long id;
     private String name;
+    private String slug;
     private String description;
     private BigDecimal price;
     private Integer stock;
@@ -13,16 +15,19 @@ public class ProductResponse {
     private String categoryName;
     private Double averageRating;
     private Integer reviewCount;
+    private List<String> images;
+    private List<ProductVariantDto> variants;
 
     public ProductResponse() {
     }
 
-    public ProductResponse(Long id, String name, String description,
+    public ProductResponse(Long id, String name, String slug, String description,
                            BigDecimal price, Integer stock,
                            Long categoryId, String categoryName,
                            Double averageRating, Integer reviewCount) {
         this.id          = id;
         this.name        = name;
+        this.slug        = slug;
         this.description = description;
         this.price       = price;
         this.stock       = stock;
@@ -37,6 +42,9 @@ public class ProductResponse {
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    public String getSlug() { return slug; }
+    public void setSlug(String slug) { this.slug = slug; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
@@ -58,4 +66,10 @@ public class ProductResponse {
 
     public Integer getReviewCount() { return reviewCount; }
     public void setReviewCount(Integer reviewCount) { this.reviewCount = reviewCount; }
+
+    public List<String> getImages() { return images; }
+    public void setImages(List<String> images) { this.images = images; }
+
+    public List<ProductVariantDto> getVariants() { return variants; }
+    public void setVariants(List<ProductVariantDto> variants) { this.variants = variants; }
 }
