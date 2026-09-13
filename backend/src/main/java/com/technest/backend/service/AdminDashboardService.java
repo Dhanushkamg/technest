@@ -251,13 +251,15 @@ public class AdminDashboardService {
 
         return new OrderDto(
                 order.getId(),
-                order.getUser().getId(),
+                order.getUser() != null ? order.getUser().getId() : null,
                 order.getSubtotal(),
                 order.getDiscountAmount(),
                 order.getCouponCode(),
                 order.getTotalAmount(),
                 order.getStatus(),
                 order.getCreatedAt(),
+                order.getGuestEmail(),
+                order.getGuestToken(),
                 snapshotDto,
                 itemDtos);
     }
@@ -269,6 +271,8 @@ public class AdminDashboardService {
                 item.getProductName(),
                 item.getPrice(),
                 item.getQuantity(),
-                item.getSubtotal());
+                item.getSubtotal(),
+                item.getVariant() != null ? item.getVariant().getId() : null,
+                item.getVariantName());
     }
 }
