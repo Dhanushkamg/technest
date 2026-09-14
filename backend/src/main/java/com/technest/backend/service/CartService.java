@@ -6,6 +6,7 @@ import com.technest.backend.dto.CartItemDto;
 import com.technest.backend.entity.Cart;
 import com.technest.backend.entity.CartItem;
 import com.technest.backend.entity.Product;
+import com.technest.backend.entity.ProductVariant;
 import com.technest.backend.entity.User;
 import com.technest.backend.exception.BadRequestException;
 import com.technest.backend.exception.ForbiddenException;
@@ -13,6 +14,7 @@ import com.technest.backend.exception.ResourceNotFoundException;
 import com.technest.backend.repository.CartItemRepository;
 import com.technest.backend.repository.CartRepository;
 import com.technest.backend.repository.ProductRepository;
+import com.technest.backend.repository.ProductVariantRepository;
 import com.technest.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,13 +31,16 @@ public class CartService {
     private final CartItemRepository cartItemRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
+    private final ProductVariantRepository productVariantRepository;
 
     public CartService(CartRepository cartRepository, CartItemRepository cartItemRepository,
-                       UserRepository userRepository, ProductRepository productRepository) {
+                       UserRepository userRepository, ProductRepository productRepository,
+                       ProductVariantRepository productVariantRepository) {
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
+        this.productVariantRepository = productVariantRepository;
     }
 
     private Cart getOrCreateCart(String email) {
@@ -67,31 +72,53 @@ public class CartService {
         Product product = productRepository.findById(request.getProductId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-        if (product.getStock() <= 0) {
-            throw new BadRequestException("Product is out of stock: " + product.getName());
+        ProductVariant variant = null;
+        int availableStock = product.getStock();
+
+        if (product.getVariants() != null && !product.getVariants().isEmpty()) {
+            if (request.getVariantId() == null) {
+                throw new BadRequestException("Product requires a variant selection");
+            }
+            variant = productVariantRepository.findById(request.getVariantId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Variant not found"));
+            
+            if (!variant.getProduct().getId().equals(product.getId())) {
+                throw new BadRequestException("Variant does not belong to this product");
+            }
+            availableStock = variant.getStock();
+        } else if (request.getVariantId() != null) {
+            throw new BadRequestException("Product does not have variants");
         }
 
+        if (availableStock <= 0) {
+            throw new BadRequestException("Product/Variant is out of stock");
+        }
+
+        final Long targetVariantId = variant != null ? variant.getId() : null;
+
         Optional<CartItem> existingItem = cart.getItems().stream()
-                .filter(item -> item.getProduct().getId().equals(product.getId()))
+                .filter(item -> item.getProduct().getId().equals(product.getId()) &&
+                                ((item.getVariant() == null && targetVariantId == null) ||
+                                 (item.getVariant() != null && item.getVariant().getId().equals(targetVariantId))))
                 .findFirst();
 
         if (existingItem.isPresent()) {
             CartItem item = existingItem.get();
             int totalQuantity = item.getQuantity() + request.getQuantity();
-            if (totalQuantity > product.getStock()) {
+            if (totalQuantity > availableStock) {
                 throw new BadRequestException("Cannot add " + request.getQuantity() + " more. Only "
-                        + product.getStock() + " available in stock, and " + item.getQuantity()
-                        + " already in cart for product: " + product.getName());
+                        + availableStock + " available in stock.");
             }
             item.setQuantity(totalQuantity);
         } else {
-            if (request.getQuantity() > product.getStock()) {
+            if (request.getQuantity() > availableStock) {
                 throw new BadRequestException("Requested quantity " + request.getQuantity()
-                        + " exceeds available stock " + product.getStock() + " for product: " + product.getName());
+                        + " exceeds available stock " + availableStock);
             }
             CartItem newItem = new CartItem();
             newItem.setCart(cart);
             newItem.setProduct(product);
+            newItem.setVariant(variant);
             newItem.setQuantity(request.getQuantity());
             cart.addItem(newItem);
         }
@@ -115,9 +142,12 @@ public class CartService {
             cartItemRepository.delete(cartItem);
         } else {
             Product product = cartItem.getProduct();
-            if (quantity > product.getStock()) {
+            ProductVariant variant = cartItem.getVariant();
+            int availableStock = variant != null ? variant.getStock() : product.getStock();
+
+            if (quantity > availableStock) {
                 throw new BadRequestException("Requested quantity " + quantity
-                        + " exceeds available stock " + product.getStock() + " for product: " + product.getName());
+                        + " exceeds available stock " + availableStock);
             }
             cartItem.setQuantity(quantity);
             cartItemRepository.save(cartItem);
@@ -145,14 +175,19 @@ public class CartService {
 
     private CartDto mapToDto(Cart cart) {
         List<CartItemDto> itemDtos = cart.getItems().stream()
-                .map(item -> new CartItemDto(
+                .map(item -> {
+                    String variantName = item.getVariant() != null ? "Size: " + item.getVariant().getSize() + " | Color: " + item.getVariant().getColor() : null;
+                    return new CartItemDto(
                         item.getId(),
                         item.getProduct().getId(),
                         item.getProduct().getName(),
-                        item.getProduct().getPrice(),
+                        item.getVariant() != null && item.getVariant().getPriceOverride() != null ? item.getVariant().getPriceOverride() : item.getProduct().getPrice(),
                         item.getQuantity(),
-                        item.getProduct().getStock()
-                ))
+                        item.getVariant() != null ? item.getVariant().getStock() : item.getProduct().getStock(),
+                        item.getVariant() != null ? item.getVariant().getId() : null,
+                        variantName
+                );
+                })
                 .collect(Collectors.toList());
 
         return new CartDto(cart.getId(), cart.getUser().getId(), itemDtos);

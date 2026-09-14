@@ -10,8 +10,10 @@ import com.technest.backend.entity.User;
 import com.technest.backend.exception.BadRequestException;
 import com.technest.backend.exception.ForbiddenException;
 import com.technest.backend.exception.ResourceNotFoundException;
+import com.technest.backend.entity.ProductImage;
 import com.technest.backend.repository.CategoryRepository;
 import com.technest.backend.repository.ProductRepository;
+import com.technest.backend.repository.ProductImageRepository;
 import com.technest.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,15 +28,18 @@ public class AdminProductService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final InventoryService inventoryService;
+    private final ProductImageRepository productImageRepository;
 
     public AdminProductService(ProductRepository productRepository,
                                CategoryRepository categoryRepository,
                                UserRepository userRepository,
-                               InventoryService inventoryService) {
+                               InventoryService inventoryService,
+                               ProductImageRepository productImageRepository) {
         this.productRepository  = productRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository     = userRepository;
         this.inventoryService   = inventoryService;
+        this.productImageRepository = productImageRepository;
     }
 
     // ---------------------------------------------------------
@@ -91,11 +96,12 @@ public class AdminProductService {
         product.setPrice(request.getPrice());
         product.setStock(request.getStock() != null ? request.getStock() : 0);
         product.setCategory(category);
+        product.setSlug(generateSlug(request.getName()));
 
         Product saved = productRepository.save(product);
         if (saved.getStock() > 0) {
             inventoryService.recordMovement(
-                    saved, 0, saved.getStock(), saved.getStock(),
+                    saved, null, 0, saved.getStock(), saved.getStock(),
                     com.technest.backend.entity.MovementType.PURCHASE,
                     "Initial product creation", email
             );
@@ -139,13 +145,14 @@ public class AdminProductService {
         product.setPrice(request.getPrice());
         product.setStock(newStock);
         product.setCategory(category);
+        product.setSlug(generateSlug(request.getName()) + "-" + product.getId());
 
         Product saved = productRepository.save(product);
 
         if (newStock != oldStock) {
             int diff = newStock - oldStock;
             inventoryService.recordMovement(
-                    saved, oldStock, diff, newStock,
+                    saved, null, oldStock, diff, newStock,
                     diff > 0 ? com.technest.backend.entity.MovementType.RESTOCK : com.technest.backend.entity.MovementType.ADJUSTMENT,
                     "Product edit stock change", email
             );
@@ -215,13 +222,47 @@ public class AdminProductService {
     }
 
     // ---------------------------------------------------------
-    // Mapping helper
+    // ADD product image
     // ---------------------------------------------------------
 
+    @Transactional
+    public void addProductImage(String email, Long productId, String imageUrl, Boolean isPrimary, Integer sortOrder) {
+        requireAdmin(email);
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
+
+        if (isPrimary) {
+            List<ProductImage> existingImages = productImageRepository.findByProductIdOrderBySortOrderAsc(productId);
+            for (ProductImage img : existingImages) {
+                if (img.getPrimary()) {
+                    img.setPrimary(false);
+                    productImageRepository.save(img);
+                }
+            }
+        }
+
+        ProductImage image = new ProductImage(product, imageUrl, sortOrder, isPrimary);
+        productImageRepository.save(image);
+    }
+
+    // ---------------------------------------------------------
+    // Helper methods
+    // ---------------------------------------------------------
+
+    private String generateSlug(String name) {
+        if (name == null) return "";
+        return name.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", "");
+    }
+
     private ProductResponse toResponse(Product p) {
-        return new ProductResponse(
+        List<ProductImage> images = productImageRepository.findByProductIdOrderBySortOrderAsc(p.getId());
+        List<String> imageUrls = images.stream().map(ProductImage::getUrl).collect(Collectors.toList());
+        
+        ProductResponse response = new ProductResponse(
                 p.getId(),
                 p.getName(),
+                p.getSlug(),
                 p.getDescription(),
                 p.getPrice(),
                 p.getStock(),
@@ -230,5 +271,7 @@ public class AdminProductService {
                 p.getAverageRating(),
                 p.getReviewCount()
         );
+        response.setImages(imageUrls);
+        return response;
     }
 }
