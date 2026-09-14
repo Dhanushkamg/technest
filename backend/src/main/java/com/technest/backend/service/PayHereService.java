@@ -76,15 +76,21 @@ public class PayHereService {
     private final PaymentRepository paymentRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final EmailService emailService;
+    private final PdfInvoiceService pdfInvoiceService;
 
     public PayHereService(OrderRepository orderRepository,
                           PaymentRepository paymentRepository,
                           UserRepository userRepository,
-                          NotificationService notificationService) {
+                          NotificationService notificationService,
+                          EmailService emailService,
+                          PdfInvoiceService pdfInvoiceService) {
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.emailService = emailService;
+        this.pdfInvoiceService = pdfInvoiceService;
     }
 
     // -------------------------------------------------------------------------
@@ -374,6 +380,16 @@ public class PayHereService {
                                 + " via PayHere was successful.",
                         "PAYMENT_SUCCESS_" + order.getId()
                 );
+                
+                // Mock sending Order Confirmation Email with Invoice Attachment
+                byte[] invoicePdf = null;
+                try {
+                    invoicePdf = pdfInvoiceService.generateInvoice(order);
+                } catch (Exception e) {
+                    log.error("Failed to generate invoice PDF for order={}", order.getId(), e);
+                }
+                emailService.sendOrderConfirmationEmail(user.getEmail(), order.getId(), "TN-" + order.getId() + "-TRACK", invoicePdf);
+                
                 log.info("PayHere payment SUCCESS recorded for order={}", order.getId());
                 return true;
             }

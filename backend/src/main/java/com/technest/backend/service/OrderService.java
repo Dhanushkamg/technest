@@ -8,6 +8,7 @@ import com.technest.backend.entity.Order;
 import com.technest.backend.entity.OrderItem;
 import com.technest.backend.entity.OrderStatus;
 import com.technest.backend.entity.Product;
+import com.technest.backend.entity.ProductVariant;
 import com.technest.backend.entity.User;
 import com.technest.backend.exception.BadRequestException;
 import com.technest.backend.exception.ForbiddenException;
@@ -45,6 +46,8 @@ public class OrderService {
     private final com.technest.backend.repository.CouponRepository couponRepository;
     private final PaymentRepository paymentRepository;
     private final InventoryService inventoryService;
+    private final EmailService emailService;
+    private final PdfInvoiceService pdfInvoiceService;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -55,7 +58,9 @@ public class OrderService {
             NotificationService notificationService,
             com.technest.backend.repository.CouponRepository couponRepository,
             PaymentRepository paymentRepository,
-            InventoryService inventoryService) {
+            InventoryService inventoryService,
+            EmailService emailService,
+            PdfInvoiceService pdfInvoiceService) {
 
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
@@ -66,6 +71,8 @@ public class OrderService {
         this.couponRepository = couponRepository;
         this.paymentRepository = paymentRepository;
         this.inventoryService = inventoryService;
+        this.emailService = emailService;
+        this.pdfInvoiceService = pdfInvoiceService;
     }
 
     // =========================
@@ -115,10 +122,23 @@ public class OrderService {
         // --- Phase 1: Validate ALL stock before reducing ANY ---
         for (CartItem cartItem : sortedItems) {
             Product product = lockedProducts.get(cartItem.getProduct().getId());
-            if (product.getStock() < cartItem.getQuantity()) {
+            ProductVariant variant = cartItem.getVariant();
+            
+            // Re-attach variant from locked product to ensure we check the locked state
+            if (variant != null) {
+                variant = product.getVariants().stream()
+                        .filter(v -> v.getId().equals(cartItem.getVariant().getId()))
+                        .findFirst()
+                        .orElseThrow(() -> new BadRequestException("Variant not found in locked product"));
+            }
+            
+            int availableStock = variant != null ? variant.getStock() : product.getStock();
+            String name = variant != null ? product.getName() + " (Variant)" : product.getName();
+            
+            if (availableStock < cartItem.getQuantity()) {
                 throw new BadRequestException(
-                        "Insufficient stock for '" + product.getName() + "'. "
-                        + "Available: " + product.getStock() + ", Requested: " + cartItem.getQuantity());
+                        "Insufficient stock for '" + name + "'. "
+                        + "Available: " + availableStock + ", Requested: " + cartItem.getQuantity());
             }
         }
 
@@ -141,20 +161,45 @@ public class OrderService {
 
         for (CartItem cartItem : sortedItems) {
             Product product = lockedProducts.get(cartItem.getProduct().getId());
+            ProductVariant variant = null;
+            if (cartItem.getVariant() != null) {
+                variant = product.getVariants().stream()
+                        .filter(v -> v.getId().equals(cartItem.getVariant().getId()))
+                        .findFirst().orElse(null);
+            }
 
-            // Reduce product stock
-            product.setStock(product.getStock() - cartItem.getQuantity());
+            int oldStock;
+            int newStock;
+            
+            if (variant != null) {
+                oldStock = variant.getStock();
+                newStock = oldStock - cartItem.getQuantity();
+                variant.setStock(newStock);
+            } else {
+                oldStock = product.getStock();
+                newStock = oldStock - cartItem.getQuantity();
+                product.setStock(newStock);
+            }
+            
             productRepository.save(product);
+
+            inventoryService.recordMovement(product, variant, oldStock, -cartItem.getQuantity(), newStock, com.technest.backend.entity.MovementType.SALE, "Order placed", user.getEmail());
 
             // Create OrderItem
             OrderItem orderItem = new OrderItem();
             orderItem.setProduct(product);
+            orderItem.setVariant(variant);
+            if (variant != null) {
+                orderItem.setVariantName("Size: " + variant.getSize() + " | Color: " + variant.getColor());
+            }
             orderItem.setProductName(product.getName());
-            orderItem.setPrice(product.getPrice());
+            
+            BigDecimal price = variant != null && variant.getPriceOverride() != null ? variant.getPriceOverride() : product.getPrice();
+            orderItem.setPrice(price);
             orderItem.setQuantity(cartItem.getQuantity());
 
             // Calculate item subtotal
-            BigDecimal itemSubtotal = product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+            BigDecimal itemSubtotal = price.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
             orderItem.setSubtotal(itemSubtotal);
 
             order.addItem(orderItem);
@@ -218,8 +263,11 @@ public class OrderService {
         // Record inventory SALE movements
         for (CartItem cartItem : sortedItems) {
             Product product = lockedProducts.get(cartItem.getProduct().getId());
+            ProductVariant variant = cartItem.getVariant();
+            int currentStock = variant != null ? variant.getStock() : product.getStock();
+            
             inventoryService.recordMovement(
-                    product, product.getStock() + cartItem.getQuantity(), -cartItem.getQuantity(), product.getStock(),
+                    product, variant, currentStock + cartItem.getQuantity(), -cartItem.getQuantity(), currentStock,
                     com.technest.backend.entity.MovementType.SALE,
                     "Order #" + savedOrder.getId(), user.getEmail()
             );
@@ -237,6 +285,169 @@ public class OrderService {
                 "ORDER_CREATED_" + savedOrder.getId()
         );
 
+        return mapToDto(savedOrder);
+    }
+
+    // =========================
+    // GUEST CHECKOUT
+    // =========================
+
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.SERIALIZABLE)
+    public OrderDto guestCheckout(com.technest.backend.dto.GuestCheckoutRequest request) {
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new BadRequestException("Guest cart is empty");
+        }
+        if (request.getGuestEmail() == null || request.getGuestEmail().trim().isEmpty()) {
+            throw new BadRequestException("Guest email is required");
+        }
+        if (request.getDeliveryAddress() == null) {
+            throw new BadRequestException("Delivery address is required");
+        }
+
+        // Lock all products to prevent race conditions
+        List<Long> productIds = request.getItems().stream()
+                .map(com.technest.backend.dto.GuestCartItemDto::getProductId)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+
+        List<Product> products = productRepository.findAllByIdWithLock(productIds);
+        if (products.size() != productIds.size()) {
+            throw new BadRequestException("One or more products not found");
+        }
+
+        Map<Long, Product> lockedProducts = products.stream()
+                .collect(Collectors.toMap(Product::getId, p -> p));
+
+        // Create Order
+        Order order = new Order();
+        order.setStatus(OrderStatus.PENDING);
+        order.setCreatedAt(LocalDateTime.now());
+        order.setGuestEmail(request.getGuestEmail().trim());
+        order.setGuestToken(java.util.UUID.randomUUID().toString());
+        order.setDeliveryAddress(request.getDeliveryAddress());
+
+        BigDecimal subtotal = BigDecimal.ZERO;
+
+        for (com.technest.backend.dto.GuestCartItemDto cartItem : request.getItems()) {
+            Product product = lockedProducts.get(cartItem.getProductId());
+            ProductVariant variant = null;
+            if (cartItem.getVariantId() != null) {
+                variant = product.getVariants().stream()
+                        .filter(v -> v.getId().equals(cartItem.getVariantId()))
+                        .findFirst().orElseThrow(() -> new BadRequestException("Variant not found: " + cartItem.getVariantId()));
+            }
+
+            int oldStock;
+            int newStock;
+            
+            if (variant != null) {
+                oldStock = variant.getStock();
+                newStock = oldStock - cartItem.getQuantity();
+                if (newStock < 0) {
+                    throw new BadRequestException("Not enough stock for variant " + variant.getSize() + "/" + variant.getColor());
+                }
+                variant.setStock(newStock);
+            } else {
+                oldStock = product.getStock();
+                newStock = oldStock - cartItem.getQuantity();
+                if (newStock < 0) {
+                    throw new BadRequestException("Not enough stock for product: " + product.getName());
+                }
+                product.setStock(newStock);
+            }
+            
+            productRepository.save(product);
+
+            inventoryService.recordMovement(product, variant, oldStock, -cartItem.getQuantity(), newStock, com.technest.backend.entity.MovementType.SALE, "Order placed", "GUEST: " + order.getGuestEmail());
+
+            // Create OrderItem
+            OrderItem orderItem = new OrderItem();
+            orderItem.setProduct(product);
+            orderItem.setVariant(variant);
+            if (variant != null) {
+                orderItem.setVariantName("Size: " + variant.getSize() + " | Color: " + variant.getColor());
+            }
+            orderItem.setProductName(product.getName());
+            
+            BigDecimal price = variant != null && variant.getPriceOverride() != null ? variant.getPriceOverride() : product.getPrice();
+            orderItem.setPrice(price);
+            orderItem.setQuantity(cartItem.getQuantity());
+
+            // Calculate item subtotal
+            BigDecimal itemSubtotal = price.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+            orderItem.setSubtotal(itemSubtotal);
+
+            order.addItem(orderItem);
+            subtotal = subtotal.add(itemSubtotal);
+        }
+
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        com.technest.backend.entity.Coupon appliedCoupon = null;
+        String couponCode = request.getCouponCode();
+
+        if (couponCode != null && !couponCode.trim().isEmpty()) {
+            String normalizedCode = couponCode.trim().toUpperCase();
+            appliedCoupon = couponRepository.findByCodeWithLock(normalizedCode)
+                    .orElseThrow(() -> new BadRequestException("Invalid coupon code"));
+
+            if (!appliedCoupon.isActive()) {
+                throw new BadRequestException("Coupon is not active");
+            }
+            if (appliedCoupon.getExpirationDate() != null && LocalDateTime.now().isAfter(appliedCoupon.getExpirationDate())) {
+                throw new BadRequestException("Coupon is expired");
+            }
+            if (appliedCoupon.getMaxUsageLimit() != null && appliedCoupon.getUsageCount() >= appliedCoupon.getMaxUsageLimit()) {
+                throw new BadRequestException("Coupon usage limit reached");
+            }
+            if (appliedCoupon.getMinOrderAmount() != null && subtotal.compareTo(appliedCoupon.getMinOrderAmount()) < 0) {
+                throw new BadRequestException("Minimum order amount for this coupon not met");
+            }
+            if (appliedCoupon.isFirstOrderOnly()) {
+                throw new BadRequestException("Coupon is only valid for your first order (registered users only)");
+            }
+
+            if (appliedCoupon.getDiscountType() == com.technest.backend.entity.DiscountType.PERCENTAGE) {
+                discountAmount = subtotal.multiply(appliedCoupon.getDiscountValue()).divide(BigDecimal.valueOf(100));
+            } else if (appliedCoupon.getDiscountType() == com.technest.backend.entity.DiscountType.FIXED_AMOUNT) {
+                discountAmount = appliedCoupon.getDiscountValue();
+            }
+
+            if (appliedCoupon.getMaxDiscountAmount() != null && discountAmount.compareTo(appliedCoupon.getMaxDiscountAmount()) > 0) {
+                discountAmount = appliedCoupon.getMaxDiscountAmount();
+            }
+
+            if (discountAmount.compareTo(subtotal) > 0) {
+                discountAmount = subtotal;
+            }
+
+            appliedCoupon.setUsageCount(appliedCoupon.getUsageCount() + 1);
+        }
+
+        BigDecimal totalAmount = subtotal.subtract(discountAmount);
+
+        order.setSubtotal(subtotal);
+        order.setDiscountAmount(discountAmount);
+        order.setCouponCode(appliedCoupon != null ? appliedCoupon.getCode() : null);
+        order.setTotalAmount(totalAmount);
+
+        // Save order
+        Order savedOrder = orderRepository.save(order);
+
+        // Record inventory SALE movements for guest
+        for (com.technest.backend.dto.GuestCartItemDto cartItem : request.getItems()) {
+            Product product = lockedProducts.get(cartItem.getProductId());
+            ProductVariant variant = cartItem.getVariantId() != null ? product.getVariants().stream().filter(v -> v.getId().equals(cartItem.getVariantId())).findFirst().orElse(null) : null;
+            int currentStock = variant != null ? variant.getStock() : product.getStock();
+            
+            inventoryService.recordMovement(
+                    product, variant, currentStock + cartItem.getQuantity(), -cartItem.getQuantity(), currentStock,
+                    com.technest.backend.entity.MovementType.SALE,
+                    "Order #" + savedOrder.getId(), "GUEST: " + order.getGuestEmail()
+            );
+        }
+
+        // We do not have a registered User to notify via websocket
         return mapToDto(savedOrder);
     }
 
@@ -265,21 +476,45 @@ public class OrderService {
             String email,
             Long orderId) {
 
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+
+        if (email != null) {
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+            if (order.getUser() == null || (!order.getUser().getId().equals(user.getId()) && !"ADMIN".equals(user.getRole()))) {
+                throw new ForbiddenException("Access denied: you can only view your own orders");
+            }
+        }
+        
+        return mapToDto(order);
+    }
+
+    public OrderDto getGuestOrderByToken(Long orderId, String token) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+
+        if (order.getGuestToken() == null || !order.getGuestToken().equals(token)) {
+            throw new ForbiddenException("Invalid guest token");
+        }
+
+        return mapToDto(order);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] generateInvoice(String email, Long orderId) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
-        // Check order ownership
-        if (!order.getUser().getId()
-                .equals(user.getId())) {
-
-            throw new ForbiddenException(
-                    "Access denied");
+        if (!order.getUser().getId().equals(user.getId()) && !"ADMIN".equals(user.getRole())) {
+            throw new ForbiddenException("Access denied: you can only download your own invoices");
         }
 
-        return mapToDto(order);
+        return pdfInvoiceService.generateInvoice(order);
     }
 
     // =========================
@@ -367,7 +602,7 @@ public class OrderService {
             productRepository.save(lockedProduct);
 
             inventoryService.recordMovement(
-                    lockedProduct, oldStock, item.getQuantity(), newStock,
+                    lockedProduct, null, oldStock, item.getQuantity(), newStock,
                     com.technest.backend.entity.MovementType.RETURN,
                     "Order #" + order.getId() + " cancellation", order.getUser().getEmail()
             );
@@ -455,6 +690,9 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
+        // Send Order Status Update Email
+        emailService.sendOrderStatusUpdateEmail(user.getEmail(), order.getId(), status.name());
+
         return mapToDto(savedOrder);
     }
 
@@ -468,12 +706,14 @@ public class OrderService {
                 .stream()
                 .map(item -> new OrderItemDto(
                         item.getId(),
-                        item.getProduct().getId(),
-                        item.getProductName(),
-                        item.getPrice(),
-                        item.getQuantity(),
-                        item.getSubtotal()))
-                .collect(Collectors.toList());
+                item.getProduct().getId(),
+                item.getProductName(),
+                item.getPrice(),
+                item.getQuantity(),
+                item.getSubtotal(),
+                item.getVariant() != null ? item.getVariant().getId() : null,
+                item.getVariantName()
+        )).collect(Collectors.toList());
 
         com.technest.backend.dto.DeliveryAddressSnapshotDto snapshotDto = null;
         if (order.getDeliveryAddress() != null) {
@@ -490,13 +730,15 @@ public class OrderService {
 
         return new OrderDto(
                 order.getId(),
-                order.getUser().getId(),
+                order.getUser() != null ? order.getUser().getId() : null,
                 order.getSubtotal(),
                 order.getDiscountAmount(),
                 order.getCouponCode(),
                 order.getTotalAmount(),
                 order.getStatus(),
                 order.getCreatedAt(),
+                order.getGuestEmail(),
+                order.getGuestToken(),
                 snapshotDto,
                 itemDtos);
     }

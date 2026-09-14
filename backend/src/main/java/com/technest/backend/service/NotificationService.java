@@ -49,6 +49,14 @@ public class NotificationService {
         }
     }
 
+    @Transactional
+    public void notifyAdmins(NotificationType type, String message, String deduplicationKey) {
+        List<User> admins = userRepository.findByRole("ADMIN");
+        for (User admin : admins) {
+            createNotificationIdempotent(admin, type, message, deduplicationKey);
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<NotificationResponse> getUserNotifications(String email) {
         User user = resolveUser(email);
