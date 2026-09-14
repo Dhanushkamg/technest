@@ -5,6 +5,8 @@ import com.technest.backend.dto.ProductResponse;
 import com.technest.backend.entity.Product;
 import com.technest.backend.exception.BadRequestException;
 import com.technest.backend.repository.ProductRepository;
+import com.technest.backend.entity.ProductImage;
+import com.technest.backend.repository.ProductImageRepository;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -38,9 +40,11 @@ public class ProductSearchService {
     );
 
     private final ProductRepository productRepository;
+    private final ProductImageRepository productImageRepository;
 
-    public ProductSearchService(ProductRepository productRepository) {
+    public ProductSearchService(ProductRepository productRepository, ProductImageRepository productImageRepository) {
         this.productRepository = productRepository;
+        this.productImageRepository = productImageRepository;
     }
 
     // ---------------------------------------------------------
@@ -93,6 +97,19 @@ public class ProductSearchService {
                 resultPage.isFirst(),
                 resultPage.isLast()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProductResponse> getRelatedProducts(Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new com.technest.backend.exception.ResourceNotFoundException("Product not found"));
+
+        // Get 4 products in the same category, excluding the current product
+        List<Product> related = productRepository.findTop4ByCategoryIdAndIdNot(product.getCategory().getId(), productId);
+        
+        return related.stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -238,10 +255,18 @@ public class ProductSearchService {
     // Mapping helper
     // ---------------------------------------------------------
 
+    // ---------------------------------------------------------
+    // Mapping helper
+    // ---------------------------------------------------------
+
     private ProductResponse toResponse(Product p) {
-        return new ProductResponse(
+        List<ProductImage> images = productImageRepository.findByProductIdOrderBySortOrderAsc(p.getId());
+        List<String> imageUrls = images.stream().map(ProductImage::getUrl).collect(Collectors.toList());
+        
+        ProductResponse response = new ProductResponse(
                 p.getId(),
                 p.getName(),
+                p.getSlug(),
                 p.getDescription(),
                 p.getPrice(),
                 p.getStock(),
@@ -250,5 +275,7 @@ public class ProductSearchService {
                 p.getAverageRating(),
                 p.getReviewCount()
         );
+        response.setImages(imageUrls);
+        return response;
     }
 }
