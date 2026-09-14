@@ -1,0 +1,19 @@
+ALTER TABLE users 
+ADD COLUMN is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+ADD COLUMN auth_provider VARCHAR(50) NOT NULL DEFAULT 'LOCAL';
+
+CREATE TABLE verification_tokens (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    expiry_date TIMESTAMP NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE password_reset_tokens (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    expiry_date TIMESTAMP NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
