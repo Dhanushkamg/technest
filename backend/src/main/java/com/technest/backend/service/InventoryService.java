@@ -5,10 +5,12 @@ import com.technest.backend.dto.StockAdjustmentRequest;
 import com.technest.backend.entity.InventoryMovement;
 import com.technest.backend.entity.MovementType;
 import com.technest.backend.entity.Product;
+import com.technest.backend.entity.ProductVariant;
 import com.technest.backend.entity.User;
 import com.technest.backend.exception.BadRequestException;
 import com.technest.backend.exception.ForbiddenException;
 import com.technest.backend.exception.ResourceNotFoundException;
+import com.technest.backend.entity.NotificationType;
 import com.technest.backend.repository.InventoryMovementRepository;
 import com.technest.backend.repository.ProductRepository;
 import com.technest.backend.repository.UserRepository;
@@ -27,13 +29,18 @@ public class InventoryService {
     private final InventoryMovementRepository inventoryMovementRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
+
+    private static final int LOW_STOCK_THRESHOLD = 5;
 
     public InventoryService(InventoryMovementRepository inventoryMovementRepository,
                             ProductRepository productRepository,
-                            UserRepository userRepository) {
+                            UserRepository userRepository,
+                            NotificationService notificationService) {
         this.inventoryMovementRepository = inventoryMovementRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     private void requireAdmin(String email) {
@@ -47,15 +54,31 @@ public class InventoryService {
     /**
      * Record an inventory movement during business transactions (e.g. SALE during checkout, RETURN during cancel).
      */
-    public InventoryMovement recordMovement(Product product, int oldStock, int quantityChange,
+    public InventoryMovement recordMovement(Product product, ProductVariant variant, int oldStock, int quantityChange,
                                            int newStock, MovementType movementType,
                                            String reason, String responsibleUser) {
         InventoryMovement movement = new InventoryMovement(
-                product, oldStock, quantityChange, newStock,
+                product, variant, oldStock, quantityChange, newStock,
                 movementType != null ? movementType : MovementType.ADJUSTMENT,
                 reason, responsibleUser != null ? responsibleUser : "SYSTEM"
         );
-        return inventoryMovementRepository.save(movement);
+        InventoryMovement saved = inventoryMovementRepository.save(movement);
+        
+        checkLowStockAndNotify(product, variant);
+        
+        return saved;
+    }
+
+    public void checkLowStockAndNotify(Product product, ProductVariant variant) {
+        int currentStock = variant != null ? variant.getStock() : product.getStock();
+        String name = variant != null ? product.getName() + " (Variant: " + variant.getSize() + "/" + variant.getColor() + ")" : product.getName();
+        String idKey = variant != null ? product.getId() + "_v" + variant.getId() : String.valueOf(product.getId());
+
+        if (currentStock <= LOW_STOCK_THRESHOLD) {
+            String message = "Low stock alert: " + name + " has only " + currentStock + " units left.";
+            String deduplicationKey = "LOW_STOCK_" + idKey + "_" + currentStock;
+            notificationService.notifyAdmins(NotificationType.SYSTEM_ALERT, message, deduplicationKey);
+        }
     }
 
     /**
@@ -87,7 +110,7 @@ public class InventoryService {
 
         MovementType type = request.getMovementType() != null ? request.getMovementType() : MovementType.ADJUSTMENT;
         InventoryMovement movement = recordMovement(
-                product, oldStock, request.getQuantityChange(), newStock,
+                product, null, oldStock, request.getQuantityChange(), newStock,
                 type, request.getReason(), email
         );
 
@@ -115,7 +138,7 @@ public class InventoryService {
 
         MovementType type = change >= 0 ? MovementType.RESTOCK : MovementType.ADJUSTMENT;
         InventoryMovement movement = recordMovement(
-                product, oldStock, change, absoluteStock,
+                product, null, oldStock, change, absoluteStock,
                 type, reason != null ? reason : "Direct stock update", email
         );
 
@@ -152,7 +175,7 @@ public class InventoryService {
         return new InventoryMovementDto(
                 m.getId(),
                 m.getProduct().getId(),
-                m.getProduct().getName(),
+                m.getVariant() != null ? m.getProduct().getName() + " (V:" + m.getVariant().getId() + ")" : m.getProduct().getName(),
                 m.getOldStock(),
                 m.getQuantityChange(),
                 m.getNewStock(),
