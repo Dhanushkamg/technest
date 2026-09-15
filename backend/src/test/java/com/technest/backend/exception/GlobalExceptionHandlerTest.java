@@ -28,15 +28,17 @@ class GlobalExceptionHandlerTest {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/products/999");
         ResourceNotFoundException ex = new ResourceNotFoundException("Product not found");
 
-        ResponseEntity<ApiError> response = handler.handleResourceNotFoundException(ex, request);
+        ResponseEntity<com.technest.backend.dto.ApiResponse<ApiError>> response = handler.handleResourceNotFoundException(ex, request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().requestId()).isEqualTo(testReqId);
-        assertThat(response.getBody().status()).isEqualTo(404);
-        assertThat(response.getBody().error()).isEqualTo("Not Found");
-        assertThat(response.getBody().message()).isEqualTo("Product not found");
-        assertThat(response.getBody().path()).isEqualTo("/api/products/999");
+        
+        ApiError apiError = (ApiError) response.getBody().error();
+        assertThat(apiError.requestId()).isEqualTo(testReqId);
+        assertThat(apiError.status()).isEqualTo(404);
+        assertThat(apiError.error()).isEqualTo("Not Found");
+        assertThat(apiError.message()).isEqualTo("Product not found");
+        assertThat(apiError.path()).isEqualTo("/api/products/999");
     }
 
     @Test
@@ -47,12 +49,14 @@ class GlobalExceptionHandlerTest {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/orders/checkout");
         BadRequestException ex = new BadRequestException("Insufficient stock");
 
-        ResponseEntity<ApiError> response = handler.handleBadRequestException(ex, request);
+        ResponseEntity<com.technest.backend.dto.ApiResponse<ApiError>> response = handler.handleBadRequestException(ex, request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().requestId()).isEqualTo(testReqId);
-        assertThat(response.getBody().status()).isEqualTo(400);
-        assertThat(response.getBody().message()).isEqualTo("Insufficient stock");
+        
+        ApiError apiError = (ApiError) response.getBody().error();
+        assertThat(apiError.requestId()).isEqualTo(testReqId);
+        assertThat(apiError.status()).isEqualTo(400);
+        assertThat(apiError.message()).isEqualTo("Insufficient stock");
     }
 }

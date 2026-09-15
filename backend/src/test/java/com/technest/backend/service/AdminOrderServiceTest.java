@@ -70,7 +70,7 @@ class AdminOrderServiceTest {
         pendingOrder.setCreatedAt(LocalDateTime.now());
         pendingOrder.setItems(new ArrayList<>());
 
-        cancelledOrderDto = new OrderDto(10L, 1L, BigDecimal.ZERO, BigDecimal.ZERO, null, BigDecimal.valueOf(100), OrderStatus.CANCELLED, LocalDateTime.now(), null, List.of());
+        cancelledOrderDto = new OrderDto(10L, 1L, BigDecimal.ZERO, BigDecimal.ZERO, null, BigDecimal.valueOf(100), OrderStatus.CANCELLED, LocalDateTime.now(), null, null, null, List.of());
     }
 
     // -------------------------------------------------------
