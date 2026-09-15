@@ -38,6 +38,20 @@ export const productAdminApi = {
   deleteProduct: async (id: number): Promise<void> => {
     await axiosClient.delete(`/admin/products/${id}`);
   },
+
+  uploadProductImage: async (id: number, file: File, isPrimary: boolean, sortOrder: number): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('isPrimary', isPrimary.toString());
+    formData.append('sortOrder', sortOrder.toString());
+
+    const response = await axiosClient.post<string>(`/admin/products/${id}/images`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
 };
 
 export default productAdminApi;

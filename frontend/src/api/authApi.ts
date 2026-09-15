@@ -21,6 +21,22 @@ export const authApi = {
     return response.data;
   },
 
+  logout: async (): Promise<void> => {
+    await axiosClient.post('/auth/logout');
+  },
+
+  verifyEmail: async (token: string): Promise<void> => {
+    await axiosClient.get(`/auth/verify-email?token=${token}`);
+  },
+
+  forgotPassword: async (email: string): Promise<void> => {
+    await axiosClient.post('/auth/forgot-password', { email });
+  },
+
+  resetPassword: async (token: string, newPassword: string): Promise<void> => {
+    await axiosClient.post('/auth/reset-password', { token, newPassword });
+  },
+
   getProfile: async (): Promise<User> => {
     const response = await axiosClient.get<User>('/users/profile');
     return response.data;

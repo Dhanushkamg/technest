@@ -8,40 +8,44 @@ export const axiosClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
   timeout: 15000,
 });
 
 axiosClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    let token: string | null = null;
-
-    try {
-      const authStorage = localStorage.getItem('technest_auth');
-      if (authStorage) {
-        const { state } = JSON.parse(authStorage);
-        token = state?.token || null;
-      }
-    } catch {
-      // fallback
-    }
-
-    if (!token) {
-      token = localStorage.getItem('token');
-    }
-
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
     return config;
   },
   (error: AxiosError) => Promise.reject(error)
 );
 
 axiosClient.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError<{ message?: string; error?: string }>) => {
-    if (error.response?.status === 401) {
+  (response) => {
+    if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+      response.data = response.data.data;
+    }
+    return response;
+  },
+  async (error: AxiosError<{ message?: string; error?: any }>) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !originalRequest.url?.includes('/auth/login')) {
+      originalRequest._retry = true;
+      try {
+        await axios.post(`${BASE_URL}/auth/refresh`, {}, { withCredentials: true });
+        return axiosClient(originalRequest);
+      } catch (refreshError) {
+        localStorage.removeItem('technest_auth');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+  
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          toast.error('Session expired. Please log in again.');
+          window.location.href = '/login?expired=true';
+        }
+        return Promise.reject(refreshError);
+      }
+    } else if (error.response?.status === 401) {
       localStorage.removeItem('technest_auth');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
@@ -52,6 +56,8 @@ axiosClient.interceptors.response.use(
       }
     } else if (error.response?.status === 403) {
       toast.error('Access denied. You do not have permission to perform this action.');
+    } else if (error.response?.data?.error?.message) {
+      toast.error(error.response.data.error.message);
     } else if (error.response?.data?.message) {
       toast.error(error.response.data.message);
     } else if (error.message === 'Network Error') {
