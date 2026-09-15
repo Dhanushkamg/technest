@@ -20,8 +20,13 @@ export const productApi = {
     return response.data;
   },
 
-  getProductById: async (id: number): Promise<Product> => {
-    const response = await axiosClient.get<Product>(`/products/${id}`);
+  getProductById: async (identifier: number | string): Promise<Product> => {
+    const response = await axiosClient.get<Product>(`/products/${identifier}`);
+    return response.data;
+  },
+
+  getRelatedProducts: async (identifier: number | string): Promise<Product[]> => {
+    const response = await axiosClient.get<Product[]>(`/products/${identifier}/related`);
     return response.data;
   },
 };

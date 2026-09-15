@@ -12,8 +12,9 @@ export const orderApi = {
     return response.data;
   },
 
-  getOrderById: async (id: number): Promise<Order> => {
-    const response = await axiosClient.get<Order>(`/orders/${id}`);
+  getOrderById: async (id: number, token?: string | null): Promise<Order> => {
+    const url = token ? `/orders/${id}?token=${token}` : `/orders/${id}`;
+    const response = await axiosClient.get<Order>(url);
     return response.data;
   },
 
