@@ -22,6 +22,11 @@ export const orderAdminApi = {
     const response = await axiosClient.post<Order>(`/admin/orders/${id}/cancel`);
     return response.data;
   },
+
+  refundOrder: async (id: number, reason: string): Promise<Order> => {
+    const response = await axiosClient.post<Order>(`/admin/orders/${id}/refund`, { reason });
+    return response.data;
+  },
 };
 
 export default orderAdminApi;
