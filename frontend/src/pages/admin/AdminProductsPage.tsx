@@ -326,7 +326,7 @@ export const AdminProductsPage: React.FC = () => {
         isOpen={uploadingImageProduct !== null}
         onClose={() => setUploadingImageProduct(null)}
         product={uploadingImageProduct}
-        onUpload={uploadImage}
+        onUpload={async (id, file, isPrimary, sortOrder) => { await uploadImage({ id, file, isPrimary, sortOrder }); }}
         isUploading={isUploadingImage}
       />
 

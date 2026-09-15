@@ -166,7 +166,7 @@ export const useCart = () => {
 
   const currentCart = isAuthenticated 
     ? cartQuery.data 
-    : { items: guestCartItems, id: 0, subtotal: 0, totalAmount: 0 } as Cart;
+    : { items: guestCartItems, id: 0, userId: 0, subtotal: 0, totalAmount: 0 } as unknown as Cart;
 
   return {
     ...cartQuery,

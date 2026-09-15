@@ -183,8 +183,6 @@ public class OrderService {
             
             productRepository.save(product);
 
-            inventoryService.recordMovement(product, variant, oldStock, -cartItem.getQuantity(), newStock, com.technest.backend.entity.MovementType.SALE, "Order placed", user.getEmail());
-
             // Create OrderItem
             OrderItem orderItem = new OrderItem();
             orderItem.setProduct(product);
@@ -358,8 +356,6 @@ public class OrderService {
             }
             
             productRepository.save(product);
-
-            inventoryService.recordMovement(product, variant, oldStock, -cartItem.getQuantity(), newStock, com.technest.backend.entity.MovementType.SALE, "Order placed", "GUEST: " + order.getGuestEmail());
 
             // Create OrderItem
             OrderItem orderItem = new OrderItem();
