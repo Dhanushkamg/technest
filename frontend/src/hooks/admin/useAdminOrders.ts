@@ -45,6 +45,19 @@ export const useAdminOrders = (status?: OrderStatus, search?: string) => {
     },
   });
 
+  const refundOrderMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) => orderAdminApi.refundOrder(id, reason),
+    onSuccess: (updatedOrder) => {
+      toast.success(`Order #${updatedOrder.id} refunded successfully.`);
+      queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['adminDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
+    onError: (err: AxiosError<{ message?: string }>) => {
+      toast.error(err.response?.data?.message || 'Failed to refund order.');
+    },
+  });
+
   return {
     ...ordersQuery,
     orders: ordersQuery.data || [],
@@ -52,6 +65,8 @@ export const useAdminOrders = (status?: OrderStatus, search?: string) => {
     isUpdatingStatus: updateOrderStatusMutation.isPending,
     cancelOrder: cancelOrderMutation.mutateAsync,
     isCancellingOrder: cancelOrderMutation.isPending,
+    refundOrder: refundOrderMutation.mutateAsync,
+    isRefundingOrder: refundOrderMutation.isPending,
   };
 };
 

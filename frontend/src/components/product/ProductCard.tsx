@@ -33,7 +33,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = 'g
     : getProductImage(product);
 
   const handleCardClick = () => {
-    navigate(`/products/${product.id}`);
+    navigate(`/products/${product.slug || product.id}`);
   };
 
   const handleAddToCart = async (e: React.MouseEvent) => {

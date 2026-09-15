@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { Helmet } from 'react-helmet-async';
 
 export interface BreadcrumbItem {
   name: string;
@@ -40,137 +41,98 @@ export const SEO: React.FC<SEOProps> = ({
   productData,
   breadcrumbs,
 }) => {
-  useEffect(() => {
-    // 1. Document Title
-    const formattedTitle = title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`;
-    document.title = formattedTitle;
+  const formattedTitle = title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`;
+  const fullUrl = canonicalUrl || (typeof window !== 'undefined' ? window.location.href : '');
+  const fullImageUrl = ogImage 
+    ? (ogImage.startsWith('http') ? ogImage : `${typeof window !== 'undefined' ? window.location.origin : ''}${ogImage}`)
+    : '';
 
-    // Helper to set or create a meta tag
-    const setMetaTag = (attributeName: string, attributeValue: string, content: string) => {
-      let element = document.querySelector(`meta[${attributeName}="${attributeValue}"]`);
-      if (!element) {
-        element = document.createElement('meta');
-        element.setAttribute(attributeName, attributeValue);
-        document.head.appendChild(element);
-      }
-      element.setAttribute('content', content);
+  const jsonLdScripts = [];
+
+  // Product Schema
+  if (productData) {
+    const productSchema: Record<string, unknown> = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: productData.name,
+      description: productData.description || description,
+      offers: {
+        '@type': 'Offer',
+        price: productData.price,
+        priceCurrency: productData.currency || 'LKR',
+        availability: productData.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+        url: fullUrl,
+      },
     };
 
-    // 2. Standard Meta Tags
-    setMetaTag('name', 'description', description);
-
-    // 3. OpenGraph Tags
-    const fullUrl = canonicalUrl || window.location.href;
-    setMetaTag('property', 'og:title', formattedTitle);
-    setMetaTag('property', 'og:description', description);
-    setMetaTag('property', 'og:url', fullUrl);
-    setMetaTag('property', 'og:type', ogType);
-    setMetaTag('property', 'og:site_name', SITE_NAME);
-    if (ogImage) {
-      const fullImageUrl = ogImage.startsWith('http') ? ogImage : `${window.location.origin}${ogImage}`;
-      setMetaTag('property', 'og:image', fullImageUrl);
+    if (productData.image) {
+      productSchema.image = productData.image.startsWith('http')
+        ? productData.image
+        : `${typeof window !== 'undefined' ? window.location.origin : ''}${productData.image}`;
     }
 
-    // 4. Twitter Card Tags
-    setMetaTag('name', 'twitter:card', ogImage ? 'summary_large_image' : 'summary');
-    setMetaTag('name', 'twitter:title', formattedTitle);
-    setMetaTag('name', 'twitter:description', description);
-    if (ogImage) {
-      const fullImageUrl = ogImage.startsWith('http') ? ogImage : `${window.location.origin}${ogImage}`;
-      setMetaTag('name', 'twitter:image', fullImageUrl);
+    if (productData.category) {
+      productSchema.category = productData.category;
     }
 
-    // 5. Canonical Link
-    let canonicalLink = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
-    if (canonicalUrl) {
-      if (!canonicalLink) {
-        canonicalLink = document.createElement('link');
-        canonicalLink.setAttribute('rel', 'canonical');
-        document.head.appendChild(canonicalLink);
-      }
-      canonicalLink.setAttribute('href', canonicalUrl);
-    } else if (canonicalLink) {
-      canonicalLink.setAttribute('href', window.location.origin + window.location.pathname);
-    }
-
-    // 6. JSON-LD Structured Data
-    const jsonLdScripts: HTMLScriptElement[] = [];
-
-    // Product Schema
-    if (productData) {
-      const productSchema: Record<string, unknown> = {
-        '@context': 'https://schema.org',
-        '@type': 'Product',
-        name: productData.name,
-        description: productData.description || description,
-        offers: {
-          '@type': 'Offer',
-          price: productData.price,
-          priceCurrency: productData.currency || 'LKR',
-          availability:
-            productData.stock > 0
-              ? 'https://schema.org/InStock'
-              : 'https://schema.org/OutOfStock',
-          url: fullUrl,
-        },
+    if (productData.averageRating && productData.averageRating > 0 && productData.reviewCount && productData.reviewCount > 0) {
+      productSchema.aggregateRating = {
+        '@type': 'AggregateRating',
+        ratingValue: productData.averageRating,
+        reviewCount: productData.reviewCount,
+        bestRating: 5,
+        worstRating: 1,
       };
-
-      if (productData.image) {
-        productSchema.image = productData.image.startsWith('http')
-          ? productData.image
-          : `${window.location.origin}${productData.image}`;
-      }
-
-      if (productData.category) {
-        productSchema.category = productData.category;
-      }
-
-      if (productData.averageRating && productData.averageRating > 0 && productData.reviewCount && productData.reviewCount > 0) {
-        productSchema.aggregateRating = {
-          '@type': 'AggregateRating',
-          ratingValue: productData.averageRating,
-          reviewCount: productData.reviewCount,
-          bestRating: 5,
-          worstRating: 1,
-        };
-      }
-
-      const script = document.createElement('script');
-      script.type = 'application/ld+json';
-      script.id = 'jsonld-product';
-      script.text = JSON.stringify(productSchema);
-      document.head.appendChild(script);
-      jsonLdScripts.push(script);
     }
 
-    // Breadcrumbs Schema
-    if (breadcrumbs && breadcrumbs.length > 0) {
-      const breadcrumbsSchema = {
-        '@context': 'https://schema.org',
-        '@type': 'BreadcrumbList',
-        itemListElement: breadcrumbs.map((b, index) => ({
-          '@type': 'ListItem',
-          position: index + 1,
-          name: b.name,
-          item: b.item.startsWith('http') ? b.item : `${window.location.origin}${b.item}`,
-        })),
-      };
+    jsonLdScripts.push(productSchema);
+  }
 
-      const script = document.createElement('script');
-      script.type = 'application/ld+json';
-      script.id = 'jsonld-breadcrumbs';
-      script.text = JSON.stringify(breadcrumbsSchema);
-      document.head.appendChild(script);
-      jsonLdScripts.push(script);
-    }
-
-    return () => {
-      // Cleanup dynamically appended JSON-LD scripts on unmount
-      jsonLdScripts.forEach((s) => s.parentNode?.removeChild(s));
+  // Breadcrumbs Schema
+  if (breadcrumbs && breadcrumbs.length > 0) {
+    const breadcrumbsSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: breadcrumbs.map((b, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: b.name,
+        item: b.item.startsWith('http') ? b.item : `${typeof window !== 'undefined' ? window.location.origin : ''}${b.item}`,
+      })),
     };
-  }, [title, description, canonicalUrl, ogImage, ogType, productData, breadcrumbs]);
+    jsonLdScripts.push(breadcrumbsSchema);
+  }
 
-  return null;
+  return (
+    <Helmet>
+      <title>{formattedTitle}</title>
+      <meta name="description" content={description} />
+      
+      {/* OpenGraph */}
+      <meta property="og:title" content={formattedTitle} />
+      <meta property="og:description" content={description} />
+      {fullUrl && <meta property="og:url" content={fullUrl} />}
+      <meta property="og:type" content={ogType} />
+      <meta property="og:site_name" content={SITE_NAME} />
+      {fullImageUrl && <meta property="og:image" content={fullImageUrl} />}
+      
+      {/* Twitter */}
+      <meta name="twitter:card" content={fullImageUrl ? 'summary_large_image' : 'summary'} />
+      <meta name="twitter:title" content={formattedTitle} />
+      <meta name="twitter:description" content={description} />
+      {fullImageUrl && <meta name="twitter:image" content={fullImageUrl} />}
+      
+      {/* Canonical */}
+      {fullUrl && <link rel="canonical" href={fullUrl} />}
+
+      {/* JSON-LD */}
+      {jsonLdScripts.map((schema, index) => (
+        <script key={index} type="application/ld+json">
+          {JSON.stringify(schema)}
+        </script>
+      ))}
+    </Helmet>
+  );
 };
 
 export default SEO;
