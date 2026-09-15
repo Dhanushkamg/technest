@@ -83,6 +83,19 @@ export const useAdminProducts = () => {
     },
   });
 
+  const uploadImageMutation = useMutation({
+    mutationFn: ({ id, file, isPrimary, sortOrder }: { id: number; file: File; isPrimary: boolean; sortOrder: number }) =>
+      productAdminApi.uploadProductImage(id, file, isPrimary, sortOrder),
+    onSuccess: () => {
+      toast.success('Image uploaded!');
+      queryClient.invalidateQueries({ queryKey: ['adminProducts'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+    onError: (err: AxiosError<{ message?: string }>) => {
+      toast.error(err.response?.data?.message || 'Failed to upload image.');
+    },
+  });
+
   return {
     ...productsQuery,
     products: productsQuery.data || [],
@@ -96,6 +109,8 @@ export const useAdminProducts = () => {
     isAdjustingStock: adjustStockMutation.isPending,
     deleteProduct: deleteProductMutation.mutateAsync,
     isDeletingProduct: deleteProductMutation.isPending,
+    uploadImage: uploadImageMutation.mutateAsync,
+    isUploadingImage: uploadImageMutation.isPending,
   };
 };
 
