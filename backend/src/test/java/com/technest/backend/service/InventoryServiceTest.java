@@ -166,7 +166,7 @@ class InventoryServiceTest {
         when(userRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(adminUser));
         when(productRepository.existsById(1L)).thenReturn(true);
 
-        InventoryMovement movement = new InventoryMovement(testProduct, 10, 10, 20, MovementType.RESTOCK, "Restock", "admin@example.com");
+        InventoryMovement movement = new InventoryMovement(testProduct, null, 10, 10, 20, MovementType.RESTOCK, "Restock", "admin@example.com");
         when(inventoryMovementRepository.findByProductIdOrderByCreatedAtDesc(eq(1L), any(PageRequest.class)))
                 .thenReturn(new PageImpl<>(List.of(movement)));
 

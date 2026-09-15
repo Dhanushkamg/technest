@@ -515,16 +515,16 @@ class OrderServiceCheckoutTest {
 
         // Verify exactly 2 SALE movements recorded (1 per distinct item)
         verify(inventoryService, times(1)).recordMovement(
-                eq(product), eq(5), eq(-2), eq(3),
+                eq(product), isNull(), eq(5), eq(-2), eq(3),
                 eq(com.technest.backend.entity.MovementType.SALE),
                 eq("Order #99"), eq(user.getEmail())
         );
         verify(inventoryService, times(1)).recordMovement(
-                eq(product2), eq(10), eq(-3), eq(7),
+                eq(product2), isNull(), eq(10), eq(-3), eq(7),
                 eq(com.technest.backend.entity.MovementType.SALE),
                 eq("Order #99"), eq(user.getEmail())
         );
-        verify(inventoryService, times(2)).recordMovement(any(), anyInt(), anyInt(), anyInt(), any(), anyString(), anyString());
+        verify(inventoryService, times(2)).recordMovement(any(), any(), anyInt(), anyInt(), anyInt(), any(), anyString(), anyString());
     }
 
     @Test

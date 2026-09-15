@@ -248,7 +248,7 @@ class OrderCancellationServiceTest {
         // Verify absolutely NO side effects are repeated on duplicate cancellation
         verify(productRepository, never()).findByIdWithLock(any());
         verify(productRepository, never()).save(any());
-        verify(inventoryService, never()).recordMovement(any(), anyInt(), anyInt(), anyInt(), any(), anyString(), anyString());
+        verify(inventoryService, never()).recordMovement(any(), any(), anyInt(), anyInt(), anyInt(), any(), anyString(), anyString());
         verify(paymentRepository, never()).save(any());
         verify(couponRepository, never()).findByCodeWithLock(any());
         verify(notificationService, never()).createNotificationIdempotent(any(), any(), any(), any());
@@ -268,7 +268,7 @@ class OrderCancellationServiceTest {
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Order is already cancelled");
 
-        verify(inventoryService, never()).recordMovement(any(), anyInt(), anyInt(), anyInt(), any(), anyString(), anyString());
+        verify(inventoryService, never()).recordMovement(any(), any(), anyInt(), anyInt(), anyInt(), any(), anyString(), anyString());
         verify(productRepository, never()).save(any());
         verify(couponRepository, never()).findByCodeWithLock(any());
         verify(notificationService, never()).createNotificationIdempotent(any(), any(), any(), any());
@@ -302,16 +302,16 @@ class OrderCancellationServiceTest {
 
         // Verify inventory RETURN movement is recorded exactly once per item
         verify(inventoryService, times(1)).recordMovement(
-                eq(product1), eq(5), eq(1), eq(6),
+                eq(product1), isNull(), eq(5), eq(1), eq(6),
                 eq(com.technest.backend.entity.MovementType.RETURN),
                 contains("Order #1 cancellation"), eq(customer.getEmail())
         );
         verify(inventoryService, times(1)).recordMovement(
-                eq(product2), eq(20), eq(2), eq(22),
+                eq(product2), isNull(), eq(20), eq(2), eq(22),
                 eq(com.technest.backend.entity.MovementType.RETURN),
                 contains("Order #1 cancellation"), eq(customer.getEmail())
         );
-        verify(inventoryService, times(2)).recordMovement(any(), anyInt(), anyInt(), anyInt(), any(), anyString(), anyString());
+        verify(inventoryService, times(2)).recordMovement(any(), any(), anyInt(), anyInt(), anyInt(), any(), anyString(), anyString());
     }
 
     @Test
