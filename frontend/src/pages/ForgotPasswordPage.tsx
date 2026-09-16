@@ -24,8 +24,8 @@ export const ForgotPasswordPage: React.FC = () => {
     try {
       await authApi.forgotPassword(email);
       setIsSuccess(true);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'An error occurred. Please try again.');
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }

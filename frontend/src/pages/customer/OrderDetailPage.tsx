@@ -69,7 +69,7 @@ export const OrderDetailPage: React.FC = () => {
       link.click();
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch {
       toast.error('Failed to download invoice.');
     }
   };

@@ -26,7 +26,7 @@ axiosClient.interceptors.response.use(
     }
     return response;
   },
-  async (error: AxiosError<{ message?: string; error?: any }>) => {
+  async (error: AxiosError<{ message?: string; error?: unknown }>) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
     
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !originalRequest.url?.includes('/auth/login')) {

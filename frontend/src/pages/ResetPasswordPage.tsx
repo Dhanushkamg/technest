@@ -47,8 +47,8 @@ export const ResetPasswordPage: React.FC = () => {
       await authApi.resetPassword(token, password);
       setIsSuccess(true);
       setTimeout(() => navigate('/login'), 3000);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to reset password. The link might be expired.');
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to reset password. The link might be expired.');
     } finally {
       setIsLoading(false);
     }

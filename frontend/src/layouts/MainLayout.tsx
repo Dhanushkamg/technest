@@ -31,7 +31,7 @@ export const MainLayout: React.FC = () => {
   const handleLogout = async () => {
     try {
       await authApi.logout();
-    } catch (e) {
+    } catch {
       // ignore
     }
     logout();

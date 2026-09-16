@@ -75,7 +75,7 @@ export const AdminLayout: React.FC = () => {
   const handleLogout = async () => {
     try {
       await authApi.logout();
-    } catch (e) {
+    } catch {
       // ignore
     }
     logout();

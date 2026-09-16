@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+
 import { motion } from 'framer-motion';
-import {
   MapPin,
-  CheckCircle2,
   Banknote,
   ArrowRight,
-  Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -19,9 +16,7 @@ import { Input } from '../../components/ui/Input';
 
 export const GuestCheckoutPage: React.FC = () => {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { cart, isLoading: isCartLoading, clearCart } = useCart();
-  const updateCartCount = useCartStore((state) => state.updateCount);
 
   // Form State
   const [email, setEmail] = useState('');
@@ -73,8 +68,8 @@ export const GuestCheckoutPage: React.FC = () => {
 
       toast.success('Order placed successfully!');
       navigate(`/guest-order-success/${order.id}?token=${order.guestToken}`);
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.message || 'Checkout failed. Please try again.';
+    } catch (error: unknown) {
+      const errorMsg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Checkout failed. Please try again.';
       toast.error(errorMsg);
     } finally {
       setIsPlacingOrder(false);

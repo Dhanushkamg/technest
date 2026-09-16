@@ -138,7 +138,7 @@ export const GuestOrderSuccessPage: React.FC = () => {
         <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Items Ordered</h3>
           <div className="divide-y divide-slate-200 dark:divide-slate-800/70">
-            {order.items.map((item: any) => {
+            {order.items.map((item: { id: number; productId: number; productName: string; quantity: number; price: number; subtotal?: number }) => {
               const imgUrl = getProductImage({ id: item.productId, name: item.productName });
               return (
                 <div key={item.id} className="py-3 flex items-center justify-between gap-4">

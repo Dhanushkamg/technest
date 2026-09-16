@@ -45,7 +45,7 @@ export const useCart = () => {
         const product = await productApi.getProductById(productId);
         const variant = variantId ? product.variants?.find(v => v.id === variantId) : null;
         
-        let newGuestItems = [...guestCartItems];
+        const newGuestItems = [...guestCartItems];
         const existingItem = newGuestItems.find(i => i.productId === productId && i.variantId === (variantId || undefined));
         
         if (existingItem) {
