@@ -6,6 +6,8 @@ export interface CartItem {
   price: number;
   quantity: number;
   stockQuantity?: number;
+  variantId?: number;
+  variantName?: string;
 }
 
 // Matches CartDto from backend exactly
@@ -19,6 +21,7 @@ export interface Cart {
 export interface AddToCartRequest {
   productId: number;
   quantity: number;
+  variantId?: number;
 }
 
 // Request DTOs - match UpdateCartItemRequest exactly

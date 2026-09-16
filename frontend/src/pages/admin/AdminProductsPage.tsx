@@ -11,12 +11,14 @@ import {
   XCircle,
   History,
   TrendingUp,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useAdminProducts } from '../../hooks/admin/useAdminProducts';
 import { useAdminCategories } from '../../hooks/admin/useAdminCategories';
 import ProductFormModal from '../../components/admin/ProductFormModal';
 import StockAdjustModal from '../../components/admin/StockAdjustModal';
 import ProductMovementsModal from '../../components/admin/ProductMovementsModal';
+import ImageUploadModal from '../../components/admin/ImageUploadModal';
 import { getProductImage } from '../../utils/productImages';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -34,8 +36,9 @@ export const AdminProductsPage: React.FC = () => {
     updateProduct,
     isUpdatingProduct,
     deleteProduct,
+    uploadImage,
+    isUploadingImage,
   } = useAdminProducts();
-
   const { categories } = useAdminCategories();
 
   // Search & Filter
@@ -45,6 +48,7 @@ export const AdminProductsPage: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [uploadingImageProduct, setUploadingImageProduct] = useState<Product | null>(null);
 
   // Stock Adjust & Movement History Modals
   const [adjustingProduct, setAdjustingProduct] = useState<Product | null>(null);
@@ -262,6 +266,13 @@ export const AdminProductsPage: React.FC = () => {
                       <td className="px-6 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
+                            onClick={() => setUploadingImageProduct(p)}
+                            className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            title="Manage Images"
+                          >
+                            <ImageIcon className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => handleOpenEditModal(p)}
                             className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                             title="Edit Product"
@@ -308,6 +319,15 @@ export const AdminProductsPage: React.FC = () => {
         isOpen={historyProduct !== null}
         onClose={() => setHistoryProduct(null)}
         product={historyProduct}
+      />
+
+      {/* Image Upload Modal */}
+      <ImageUploadModal
+        isOpen={uploadingImageProduct !== null}
+        onClose={() => setUploadingImageProduct(null)}
+        product={uploadingImageProduct}
+        onUpload={uploadImage}
+        isUploading={isUploadingImage}
       />
 
       {/* Delete Confirmation Dialog */}

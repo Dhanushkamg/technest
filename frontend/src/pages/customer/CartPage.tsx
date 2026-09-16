@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCart } from '../../hooks/useCart';
+import { useAuthStore } from '../../store/useAuthStore';
 import { getProductImage } from '../../utils/productImages';
 import type { CartItem } from '../../types';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -82,7 +83,10 @@ const CartItemRow: React.FC<{
       <div className="flex-1 flex flex-col justify-between gap-3">
         <div>
           <p className="text-base font-bold text-slate-900 dark:text-slate-100">{item.productName}</p>
-          <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+          {item.variantName && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{item.variantName}</p>
+          )}
+          <div className="flex items-center gap-3 mt-1 flex-wrap">
             <span className="text-xs text-brand-600 dark:text-brand-400">Unit price: ${Number(item.price).toFixed(2)}</span>
             {maxStock !== undefined && maxStock <= 5 && maxStock > 0 && (
               <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
@@ -173,6 +177,7 @@ const CartSkeleton: React.FC = () => (
 // ─── Full Cart Page ───────────────────────────────────────────────────────────
 export const CartPage: React.FC = () => {
   const navigate = useNavigate();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [showClearDialog, setShowClearDialog] = useState(false);
   const {
     cart,
@@ -314,7 +319,7 @@ export const CartPage: React.FC = () => {
                 variant="primary"
                 size="lg"
                 className="w-full"
-                onClick={() => navigate('/checkout')}
+                onClick={() => navigate(isAuthenticated ? '/checkout' : '/guest-checkout')}
                 rightIcon={<ArrowRight className="w-4 h-4" />}
               >
                 Proceed to Checkout

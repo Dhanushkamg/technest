@@ -398,7 +398,10 @@ export const CheckoutPage: React.FC = () => {
                       </div>
                       <div>
                         <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm line-clamp-1">{item.productName}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Qty: {item.quantity} × ${Number(item.price).toFixed(2)}</p>
+                        {item.variantName && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{item.variantName}</p>
+                        )}
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Qty: {item.quantity} × ${Number(item.price).toFixed(2)}</p>
                       </div>
                     </div>
                     <span className="font-bold text-slate-900 dark:text-white text-sm">

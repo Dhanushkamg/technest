@@ -9,7 +9,6 @@ export interface User {
 }
 
 export interface AuthResponse {
-  token: string;
   id?: number;
   userId?: number;
   type?: string;

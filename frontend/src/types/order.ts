@@ -7,6 +7,8 @@ export interface OrderItem {
   price: number;
   quantity: number;
   subtotal: number;
+  variantId?: number;
+  variantName?: string;
 }
 
 export interface DeliveryAddressSnapshot {

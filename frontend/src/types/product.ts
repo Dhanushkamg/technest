@@ -1,6 +1,16 @@
+export interface ProductVariant {
+  id: number;
+  color: string;
+  size: string;
+  sku: string;
+  stock: number;
+  priceOverride: number;
+}
+
 export interface Product {
   id: number;
   name: string;
+  slug: string;
   description: string;
   price: number;
   stock: number;
@@ -9,6 +19,7 @@ export interface Product {
   averageRating: number;
   reviewCount: number;
   createdAt?: string;
+  variants?: ProductVariant[];
 }
 
 export interface ProductRequest {

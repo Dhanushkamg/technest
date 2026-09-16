@@ -17,10 +17,16 @@ const LoginPage = lazy(() => import('../pages/LoginPage'));
 const RegisterPage = lazy(() => import('../pages/RegisterPage'));
 const ProfilePage = lazy(() => import('../pages/ProfilePage'));
 const UnauthorizedPage = lazy(() => import('../pages/UnauthorizedPage'));
+const VerifyEmailPage = lazy(() => import('../pages/VerifyEmailPage'));
+const ForgotPasswordPage = lazy(() => import('../pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('../pages/ResetPasswordPage'));
+const OAuth2RedirectHandler = lazy(() => import('../pages/OAuth2RedirectHandler'));
 
 const CartPage = lazy(() => import('../pages/customer/CartPage'));
 const CheckoutPage = lazy(() => import('../pages/customer/CheckoutPage'));
+const GuestCheckoutPage = lazy(() => import('../pages/customer/GuestCheckoutPage'));
 const OrderSuccessPage = lazy(() => import('../pages/customer/OrderSuccessPage'));
+const GuestOrderSuccessPage = lazy(() => import('../pages/customer/GuestOrderSuccessPage'));
 const OrdersPage = lazy(() => import('../pages/customer/OrdersPage'));
 const OrderDetailPage = lazy(() => import('../pages/customer/OrderDetailPage'));
 const WishlistPage = lazy(() => import('../pages/customer/WishlistPage'));
@@ -58,6 +64,10 @@ export const AppRoutes: React.FC = () => {
           <Route path="/products/:id" element={<ProductDetailPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
           {/* Protected Customer Account Routes */}
@@ -76,15 +86,11 @@ export const AppRoutes: React.FC = () => {
             <Route path="/notifications" element={<NotificationPage />} />
           </Route>
 
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/guest-checkout" element={<GuestCheckoutPage />} />
+          <Route path="/guest-order-success/:orderId" element={<GuestOrderSuccessPage />} />
+
           {/* Other Protected Routes */}
-          <Route
-            path="/cart"
-            element={
-              <ProtectedRoute>
-                <CartPage />
-              </ProtectedRoute>
-            }
-          />
           <Route
             path="/checkout"
             element={

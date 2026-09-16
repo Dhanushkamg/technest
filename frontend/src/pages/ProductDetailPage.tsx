@@ -21,11 +21,13 @@ import {
 import { toast } from 'sonner';
 import { productApi } from '../api/productApi';
 import { getProductImages } from '../utils/productImages';
+import { ProductVariant } from '../types/product';
 import RatingStars from '../components/common/RatingStars';
 import { useCart } from '../hooks/useCart';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCartStore } from '../store/useCartStore';
 import { useWishlist } from '../hooks/useWishlist';
+import { useRelatedProducts } from '../hooks/useProduct';
 import ProductReviews from '../components/product/ProductReviews';
 import { ProductCard } from '../components/product/ProductCard';
 import { ErrorState } from '../components/ui/ErrorState';
@@ -36,7 +38,7 @@ import { SEO } from '../components/common/SEO';
 
 export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const productId = Number(id);
+  const productIdentifier = id || '';
   const navigate = useNavigate();
 
   const { addToCart, isAddingToCart } = useCart();
@@ -49,8 +51,9 @@ export const ProductDetailPage: React.FC = () => {
   const [isZoomModalOpen, setIsZoomModalOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('specs');
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
 
-  const isWishlisted = isInWishlist(productId);
+  const isWishlisted = product ? isInWishlist(product.id) : false;
   const isWishlistPending = isAddingToWishlist || isRemovingFromWishlist;
 
   // Fetch product by ID
@@ -61,35 +64,33 @@ export const ProductDetailPage: React.FC = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['product', productId],
-    queryFn: () => productApi.getProductById(productId),
-    enabled: !!productId && !isNaN(productId),
+    queryKey: ['product', productIdentifier],
+    queryFn: () => productApi.getProductById(productIdentifier),
+    enabled: !!productIdentifier,
   });
 
-  // Fetch related products in the same category
-  const { data: relatedData } = useQuery({
-    queryKey: ['related-products', product?.categoryId],
-    queryFn: () => productApi.getProducts({ categoryId: product?.categoryId, size: 5 }),
-    enabled: !!product?.categoryId,
-  });
+  // Fetch related products using our new endpoint
+  const { data: relatedData } = useRelatedProducts(productIdentifier);
 
-  const relatedProducts = (relatedData?.content || [])
-    .filter((p) => p.id !== productId)
-    .slice(0, 4);
+  const relatedProducts = relatedData || [];
 
   const images = product ? getProductImages(product) : [];
   const currentImage = images[selectedImageIndex] || images[0] || '';
 
+  const hasVariants = product?.variants && product.variants.length > 0;
+  const currentStock = hasVariants ? (selectedVariant?.stock ?? 0) : (product?.stock ?? 0);
+  const currentPrice = hasVariants ? (selectedVariant?.priceOverride ?? product?.price ?? 0) : (product?.price ?? 0);
+
   const handleAddToCart = async () => {
-    if (!isAuthenticated) {
-      toast.error('Please log in to add items to your cart');
-      navigate('/login');
+    if (!product) return;
+    
+    if (hasVariants && !selectedVariant) {
+      toast.error('Please select a variant (size/color)');
       return;
     }
-    if (!product) return;
 
     try {
-      await addToCart({ productId: product.id, quantity });
+      await addToCart({ productId: product.id, quantity, variantId: selectedVariant?.id });
       toast.success(`Added ${quantity} × ${product.name} to cart!`);
       openMiniCart();
     } catch {
@@ -98,15 +99,15 @@ export const ProductDetailPage: React.FC = () => {
   };
 
   const handleBuyNow = async () => {
-    if (!isAuthenticated) {
-      toast.error('Please log in to proceed to checkout');
-      navigate('/login');
+    if (!product) return;
+    
+    if (hasVariants && !selectedVariant) {
+      toast.error('Please select a variant (size/color) to proceed');
       return;
     }
-    if (!product) return;
 
     try {
-      await addToCart({ productId: product.id, quantity });
+      await addToCart({ productId: product.id, quantity, variantId: selectedVariant?.id });
       navigate('/cart');
     } catch {
       // Handled in axios interceptor
@@ -145,17 +146,18 @@ export const ProductDetailPage: React.FC = () => {
   // Stock badge helper
   const getStockBadge = () => {
     if (!product) return null;
-    if (product.stock === 0) {
+    
+    if (currentStock === 0) {
       return (
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50">
           <XCircle className="w-3.5 h-3.5" /> Out of Stock
         </span>
       );
     }
-    if (product.stock <= 5) {
+    if (currentStock <= 5) {
       return (
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
-          <AlertCircle className="w-3.5 h-3.5" /> Only {product.stock} units remaining
+          <AlertCircle className="w-3.5 h-3.5" /> Only {currentStock} units remaining
         </span>
       );
     }
@@ -231,7 +233,7 @@ export const ProductDetailPage: React.FC = () => {
               </tr>
               <tr>
                 <td className="py-3 font-semibold text-slate-500 dark:text-slate-400">Inventory Stock</td>
-                <td className="py-3 text-slate-700 dark:text-slate-200 font-semibold">{product.stock} units available</td>
+                <td className="py-3 text-slate-700 dark:text-slate-200 font-semibold">{currentStock} units available</td>
               </tr>
               <tr>
                 <td className="py-3 font-semibold text-slate-500 dark:text-slate-400">Customer Rating</td>
@@ -328,15 +330,15 @@ export const ProductDetailPage: React.FC = () => {
       <SEO
         title={`${product.name} — Buy Online`}
         description={product.description || `Buy ${product.name} at TechNest. Fast shipping, guaranteed authentic, and official manufacturer warranty.`}
-        canonicalUrl={`${window.location.origin}/products/${product.id}`}
+        canonicalUrl={`${window.location.origin}/products/${product.slug || product.id}`}
         ogImage={images[0]}
         ogType="product"
         productData={{
           name: product.name,
           description: product.description,
-          price: product.price,
+          price: currentPrice,
           currency: 'LKR',
-          stock: product.stock,
+          stock: currentStock,
           category: product.categoryName,
           image: images[0],
           averageRating: product.averageRating,
@@ -346,7 +348,7 @@ export const ProductDetailPage: React.FC = () => {
           { name: 'Home', item: '/' },
           { name: 'Products', item: '/products' },
           { name: product.categoryName, item: `/products?categoryId=${product.categoryId}` },
-          { name: product.name, item: `/products/${product.id}` },
+          { name: product.name, item: `/products/${product.slug || product.id}` },
         ]}
       />
       {/* Breadcrumb & Navigation */}
@@ -458,11 +460,11 @@ export const ProductDetailPage: React.FC = () => {
             <div>
               <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Price</span>
               <span className="text-3xl font-black text-slate-900 dark:text-white">
-                ${Number(product.price).toFixed(2)}
+                ${Number(currentPrice).toFixed(2)}
               </span>
             </div>
-            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 px-3 py-1 rounded-full">
-              In Stock & Verified
+            <span className={`text-xs font-bold px-3 py-1 rounded-full border ${currentStock > 0 ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50' : 'text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/50'}`}>
+              {currentStock > 0 ? 'In Stock & Verified' : 'Out of Stock'}
             </span>
           </div>
 
@@ -471,6 +473,34 @@ export const ProductDetailPage: React.FC = () => {
             {product.description ||
               'High-grade hardware built with ultra-reliable engineering standards, optimized for intensive productivity and creative computing.'}
           </p>
+
+          {/* Variant Selector */}
+          {hasVariants && (
+            <div className="space-y-3 pt-2">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Select Variant:
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {product.variants!.map((variant) => (
+                  <button
+                    key={variant.id}
+                    onClick={() => {
+                      setSelectedVariant(variant);
+                      setQuantity(1); // Reset quantity when variant changes
+                    }}
+                    className={`px-3 py-2 rounded-xl text-sm font-medium border text-left transition-all ${
+                      selectedVariant?.id === variant.id
+                        ? 'bg-brand-50 border-brand-500 text-brand-700 dark:bg-brand-900/30 dark:border-brand-500 dark:text-brand-300 ring-1 ring-brand-500'
+                        : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-600'
+                    }`}
+                  >
+                    <div className="block font-bold">{variant.size} - {variant.color}</div>
+                    <div className="block text-xs mt-0.5 opacity-80">{variant.stock > 0 ? `${variant.stock} in stock` : 'Out of stock'}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Quantity and Actions */}
           <div className="space-y-4 pt-2">
@@ -492,8 +522,8 @@ export const ProductDetailPage: React.FC = () => {
                 </span>
                 <button
                   type="button"
-                  onClick={() => setQuantity((prev) => Math.min(product.stock, prev + 1))}
-                  disabled={quantity >= product.stock}
+                  onClick={() => setQuantity((prev) => Math.min(currentStock, prev + 1))}
+                  disabled={quantity >= currentStock || (hasVariants && !selectedVariant)}
                   className="p-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -507,7 +537,7 @@ export const ProductDetailPage: React.FC = () => {
                 variant="primary"
                 size="lg"
                 onClick={handleAddToCart}
-                disabled={product.stock === 0 || isAddingToCart}
+                disabled={currentStock === 0 || isAddingToCart || (hasVariants && !selectedVariant)}
                 isLoading={isAddingToCart}
                 leftIcon={<ShoppingBag className="w-5 h-5" />}
                 className="flex-1 shadow-lg shadow-brand-500/25"
@@ -519,7 +549,7 @@ export const ProductDetailPage: React.FC = () => {
                 variant="secondary"
                 size="lg"
                 onClick={handleBuyNow}
-                disabled={product.stock === 0}
+                disabled={currentStock === 0 || (hasVariants && !selectedVariant)}
                 leftIcon={<Zap className="w-5 h-5" />}
                 className="flex-1 bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-300 border-brand-200 dark:border-brand-500/30 hover:bg-brand-100"
               >

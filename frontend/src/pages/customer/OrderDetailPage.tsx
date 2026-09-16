@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Calendar,
@@ -7,6 +7,7 @@ import {
   CreditCard,
   XCircle,
   Package,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -22,9 +23,11 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 export const OrderDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const numericId = Number(id);
+  const token = searchParams.get('token');
 
-  const { data: order, isLoading, isError, refetch } = useOrderDetails(numericId);
+  const { data: order, isLoading, isError, refetch } = useOrderDetails(numericId, token);
   const { payments = [] } = usePayment(numericId);
   const { cancelOrder, isCancellingOrder } = useOrders();
 
@@ -44,6 +47,30 @@ export const OrderDetailPage: React.FC = () => {
         (axios.isAxiosError(err) ? (err.response?.data as { message?: string } | undefined)?.message : undefined) ||
         (err instanceof Error ? err.message : 'Failed to cancel order.');
       toast.error(msg);
+    }
+  };
+
+  const handleDownloadInvoice = async () => {
+    if (!order) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:8080/api/v1/orders/${order.id}/invoice`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice-${order.id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error('Failed to download invoice.');
     }
   };
 
@@ -79,11 +106,11 @@ export const OrderDetailPage: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Back Link */}
       <Link
-        to="/orders"
+        to={token ? '/' : '/orders'}
         className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors mb-6 group"
       >
         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-        Back to Orders History
+        {token ? 'Return to Home' : 'Back to Orders History'}
       </Link>
 
       {/* Header Info Banner */}
@@ -100,7 +127,7 @@ export const OrderDetailPage: React.FC = () => {
           </p>
         </div>
 
-        {canCancel && (
+        {canCancel && !token && (
           <Button
             variant="danger"
             size="sm"
@@ -108,6 +135,16 @@ export const OrderDetailPage: React.FC = () => {
             leftIcon={<XCircle className="w-4 h-4" />}
           >
             Cancel Order
+          </Button>
+        )}
+        {!canCancel && order.status !== 'CANCELLED' && !token && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleDownloadInvoice}
+            leftIcon={<Download className="w-4 h-4" />}
+          >
+            Download Invoice
           </Button>
         )}
       </div>
@@ -196,6 +233,9 @@ export const OrderDetailPage: React.FC = () => {
                         >
                           {item.productName}
                         </Link>
+                        {item.variantName && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{item.variantName}</p>
+                        )}
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                           Unit Price: ${Number(item.price).toFixed(2)} × {item.quantity}
                         </p>

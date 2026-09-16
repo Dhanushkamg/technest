@@ -34,7 +34,9 @@ const OrderRow: React.FC<{
   order: Order;
   onStatusChange: (vars: { id: number; status: OrderStatus }) => Promise<Order>;
   isUpdating: boolean;
-}> = ({ order, onStatusChange, isUpdating }) => {
+  onRefund: (vars: { id: number; reason: string }) => Promise<Order>;
+  isRefunding: boolean;
+}> = ({ order, onStatusChange, isUpdating, onRefund, isRefunding }) => {
   const [expanded, setExpanded] = useState(false);
   const nextStatuses = STATUS_TRANSITIONS[order.status] ?? [];
 
@@ -112,6 +114,22 @@ const OrderRow: React.FC<{
               </div>
             ) : (
               <span className="text-slate-400 dark:text-slate-500 text-[11px] italic">Finalized</span>
+            )}
+            
+            {order.status !== 'CANCELLED' && order.status !== 'PENDING' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (window.confirm('Are you sure you want to refund this order?')) {
+                    onRefund({ id: order.id, reason: 'Admin requested manual refund' });
+                  }
+                }}
+                disabled={isRefunding}
+                className="ml-2 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all shadow-sm disabled:opacity-50 flex items-center gap-1 bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/80 dark:text-amber-400 dark:border-amber-800/60 dark:hover:bg-amber-900/80"
+              >
+                {isRefunding && <Loader2 className="w-3 h-3 animate-spin" />}
+                Refund
+              </button>
             )}
           </div>
         </td>
@@ -218,7 +236,7 @@ export const AdminOrdersPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | OrderStatus>('ALL');
 
-  const { orders, isLoading, isError, refetch, updateOrderStatus, isUpdatingStatus } = useAdminOrders(
+  const { orders, isLoading, isError, refetch, updateOrderStatus, isUpdatingStatus, refundOrder, isRefundingOrder } = useAdminOrders(
     statusFilter === 'ALL' ? undefined : statusFilter,
     searchTerm || undefined
   );
@@ -332,6 +350,8 @@ export const AdminOrdersPage: React.FC = () => {
                     order={order}
                     onStatusChange={updateOrderStatus}
                     isUpdating={isUpdatingStatus}
+                    onRefund={refundOrder}
+                    isRefunding={isRefundingOrder}
                   />
                 ))
               )}

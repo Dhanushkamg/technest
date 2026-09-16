@@ -61,11 +61,18 @@ const DEFAULT_FALLBACKS = [
 ];
 
 export function getProductImage(product: Partial<Product>): string {
+  if (product.images && product.images.length > 0) {
+    return product.images[0];
+  }
   const images = getProductImages(product);
   return images[0];
 }
 
 export function getProductImages(product: Partial<Product>): string[] {
+  if (product.images && product.images.length > 0) {
+    return product.images;
+  }
+
   const id = product.id || 1;
   const categoryName = (product.categoryName || '').toLowerCase().trim();
 
