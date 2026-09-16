@@ -10,7 +10,6 @@ import {
 import { toast } from 'sonner';
 import axios from 'axios';
 import { useCart } from '../../hooks/useCart';
-import { useCartStore } from '../../store/useCartStore';
 import { getProductImage } from '../../utils/productImages';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
