@@ -1,6 +1,6 @@
 # TechNest — Full-Stack E-Commerce Application
 
-TechNest is a full-stack e-commerce application built with a React frontend and a Spring Boot backend. It supports product browsing, cart management, wishlist, order placement, payment processing (including PayHere sandbox integration), user authentication, admin management, and more.
+TechNest is a comprehensive full-stack e-commerce application built with a React frontend and a Spring Boot backend. It supports rich product browsing, robust cart and wishlist management, seamless order placement, payment processing, OAuth2 and JWT-based user authentication, guest checkout, and a full-featured admin management dashboard.
 
 ---
 
@@ -30,6 +30,7 @@ technest/
 │   │   │   │   ├── config/       # Security & CORS config
 │   │   │   │   └── exception/    # Global exception handling
 │   │   │   └── resources/
+│   │   │       ├── db/migration/ # Flyway SQL migrations (V1 to V11)
 │   │   │       └── application.properties
 │   │   └── test/                 # Unit tests (JUnit 5)
 │   ├── pom.xml
@@ -62,30 +63,29 @@ technest/
 
 | Technology | Purpose |
 |---|---|
-| Spring Boot 4.1 | Application framework |
+| Spring Boot 3.x | Application framework |
 | Java 21 | Language |
-| Spring Security | Authentication & authorization |
+| Spring Security | Authentication & authorization (JWT & OAuth2) |
 | Spring Data JPA + Hibernate | ORM & database access |
 | PostgreSQL | Relational database |
-| JJWT 0.13 | JWT token generation & validation |
-| SpringDoc OpenAPI 2.8 | Swagger UI API documentation |
+| Flyway | Database migrations |
+| JJWT | JWT token generation & validation |
+| Spring Mail | SMTP email verification & notifications |
+| SpringDoc OpenAPI | Swagger UI API documentation |
 | Maven | Build tool |
 
 ---
 
 ## Features
 
-- **Authentication** — JWT-based login and registration (customer & admin roles)
-- **Product Catalog** — Browse, search, and filter products by category
-- **Shopping Cart** — Add, update, and remove items
-- **Wishlist** — Save products for later
-- **Product Reviews & Ratings** — Submit and view reviews per product
-- **Checkout & Orders** — Place orders with address selection and coupon codes
-- **Payment Processing** — Simulated COD, card, and PayPal flows; PayHere payment gateway (sandbox)
-- **Order Management** — Track order status; cancel orders with refund flow
-- **Notifications** — In-app notifications for order and payment events
-- **Admin Dashboard** — Manage products, categories, orders, coupons, and stock; view analytics
-- **API Documentation** — Swagger UI at `/swagger-ui.html`
+- **Authentication** — JWT-based login/registration, OAuth2 Google login, Email Verification, Forgot/Reset Password flows.
+- **Product Catalog** — Browse, search, and filter products by category. Pagination & search functionalities included.
+- **Shopping Cart & Wishlist** — Add, update, and remove items dynamically.
+- **Checkout Flows** — Authenticated customer checkout as well as a complete Guest Checkout flow.
+- **Payment Processing** — Simulated COD, Stripe integration for card payments, and PayPal flows.
+- **Order Management** — Track order status, cancel orders with inventory restock, and download PDF invoices.
+- **Admin Dashboard** — Manage products (CRUD), categories, orders, customers, and view high-level analytics.
+- **API Documentation** — Auto-generated Swagger UI available at `/swagger-ui.html`.
 
 ---
 
@@ -107,15 +107,14 @@ technest/
 CREATE DATABASE ecommerce_db;
 ```
 
-2. **Configure environment variables** — create `backend/.env` (gitignored):
+2. **Configure environment variables** — set them in your environment or via your IDE run configurations:
 ```properties
-PAYHERE_MERCHANT_ID=<your-sandbox-merchant-id>
-PAYHERE_MERCHANT_SECRET=<your-sandbox-merchant-secret>
-PAYHERE_NOTIFY_URL=<publicly-reachable-notify-url>
+# Required for OAuth2 & Email integrations
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID=<your-google-client-id>
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET=<your-google-client-secret>
+SPRING_MAIL_USERNAME=<your-smtp-email>
+SPRING_MAIL_PASSWORD=<your-smtp-password>
 ```
-
-   > For local dev, expose port 8080 with ngrok: `ngrok http 8080`
-   > Then set `PAYHERE_NOTIFY_URL=https://<tunnel>.ngrok-free.app/api/payments/payhere/notify`
 
 3. **Update DB credentials** in `backend/src/main/resources/application.properties` if different from the defaults (`postgres` / `postgres123`).
 
@@ -155,40 +154,26 @@ npm run dev
 
 ---
 
-## Important Environment Variables
+## Default Seed Credentials
 
-| Variable | Location | Description |
-|---|---|---|
-| `VITE_API_BASE_URL` | `frontend/.env` | Backend API base URL |
-| `PAYHERE_MERCHANT_ID` | `backend/.env` | PayHere sandbox merchant ID |
-| `PAYHERE_MERCHANT_SECRET` | `backend/.env` | PayHere merchant secret — never commit |
-| `PAYHERE_NOTIFY_URL` | `backend/.env` | Public PayHere notify webhook URL |
-| `PAYHERE_CURRENCY` | `backend/.env` | Payment currency (default: LKR) |
-| `PAYHERE_RETURN_URL` | `backend/.env` | Redirect after successful payment |
-| `JWT_SECRET` | `backend/.env` | Secret key for JWT signing |
-| `JWT_EXPIRATION` | `backend/.env` | Expiration time for JWT in milliseconds |
-| `PAYHERE_CANCEL_URL` | `backend/.env` | Redirect if payment is cancelled |
+Upon startup, Flyway scripts seed the database with test accounts. Use the following credentials to explore the app:
 
-> WARNING: Never commit .env files containing real credentials to version control.
+- **Admin Account**: `admin@technest.com` / `admin123`
+- **Customer Account**: `customer@technest.com` / `customer123`
+
+*(Note: These accounts are pre-verified. Newly registered accounts require email verification.)*
 
 ---
 
 ## Database Migrations (Flyway)
 
-Database schema versioning and initial catalog population are managed via Flyway:
-- `V1__init_schema.sql` — Baseline schema for all tables, constraints, foreign keys, and sequences.
-- `V2__add_performance_indexes.sql` — Optimistic locking columns (`version`), deduplication keys, and composite performance query indexes.
-- `V3__seed_catalog_data.sql` — Initial standard electronics categories and hardware products seed data.
-- `V4__expand_catalog_population.sql` — Extended catalog population across all primary hardware departments (30+ products).
-
-In production, Hibernate is configured to `validate` the schema against the entity model (`spring.jpa.hibernate.ddl-auto=validate`).
-
----
-
-## Observability & Health
-
-- **Correlation IDs**: Incoming `X-Request-ID` is sanitized and logged via SLF4J MDC, returned in response headers.
-- **Actuator Health**: Safe liveness/readiness probes available at `/actuator/health` (internal environment and sensitive details are concealed).
+Database schema versioning and initial catalog population are managed via Flyway. The project includes migrations from `V1` to `V11`, handling:
+- Baseline schema creation (Users, Products, Orders, Categories).
+- Indexing for performance and concurrency locks.
+- Seed data for products, categories, and verified users.
+- Guest checkout support (`guest_token` and `guest_email`).
+- OAuth2 structural updates (e.g., nullable passwords).
+- Reset password token columns.
 
 ---
 
@@ -214,7 +199,6 @@ Automated CI is configured via GitHub Actions in `.github/workflows/ci.yml`.
 ## Original Repositories
 
 This monorepo was consolidated from:
-
 - **Frontend**: https://github.com/Dhanushkamg/technest-frontend
 - **Backend**: https://github.com/Dhanushkamg/technest-backend
 
