@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Toaster } from 'sonner';
 import { useAuthStore } from '../store/useAuthStore';
+import { authApi } from '../api/authApi';
 import { ThemeToggle } from '../components/ui/ThemeToggle';
 import { Drawer } from '../components/ui/Drawer';
 
@@ -71,8 +72,15 @@ const SidebarContent: React.FC<{ onNavClick?: () => void; onLogout: () => void }
 export const AdminLayout: React.FC = () => {
   const { user, logout } = useAuthStore();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-
-  const handleLogout = () => { logout(); setMobileSidebarOpen(false); };
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch (e) {
+      // ignore
+    }
+    logout();
+    setMobileSidebarOpen(false);
+  };
   const closeMobileSidebar = () => setMobileSidebarOpen(false);
 
   return (

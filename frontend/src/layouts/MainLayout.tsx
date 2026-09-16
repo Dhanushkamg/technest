@@ -28,7 +28,12 @@ export const MainLayout: React.FC = () => {
 
   const queryClient = useQueryClient();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch (e) {
+      // ignore
+    }
     logout();
     useCartStore.getState().clearCart();
     useCartStore.getState().closeMiniCart();
